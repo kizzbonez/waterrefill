@@ -31,6 +31,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'jazzmin',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -38,8 +39,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'dashboard',
-    'api',
     'rest_framework',
+    'rest_framework_simplejwt',
+    'admin_portal',
+    'api',
+
 ]
 
 MIDDLEWARE = [
@@ -53,11 +57,11 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'waterrefill.urls'
-
+STATICFILES_DIRS = [BASE_DIR / 'admin_portal/static']
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'admin_portal/templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -144,3 +148,33 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+AUTH_USER_MODEL = 'admin_portal.CustomUser'
+
+
+
+JAZZMIN_SETTINGS = {
+    "site_title": "My Admin",
+    "site_header": "My Dashboard",
+    "welcome_sign": "Welcome to RefillPro Admin Panel",
+    "hide_models": [],  # Ensure your model isn't hidden here
+    "order_with_respect_to": [
+        "admin_portal.CustomUser",  # Ensure CustomUser is prioritized if needed
+    ],
+    "custom_links": {
+        "admin_portal": [  # Replace with your app name
+            # {
+            #     "name": "Theme Settings",
+            #     "url": "themesettings_changelist",  # Adjust for your app/model
+            #     "icon": "fas fa-paint-brush",  # Font Awesome icon for the link
+            #     "permissions": ["admin_portal.change_themesettings"],  # Permissions required
+            # },
+        ]
+    },
+    "navigation_expanded": True,  # Ensure the sidebar is always expanded
+}
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'api.authentication.CustomJWTAuthentication',
+    ),
+}
