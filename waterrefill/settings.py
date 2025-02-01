@@ -43,6 +43,8 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'admin_portal',
     'api',
+    'products',
+    'orders'
 
 ]
 
@@ -156,22 +158,76 @@ JAZZMIN_SETTINGS = {
     "site_title": "My Admin",
     "site_header": "My Dashboard",
     "welcome_sign": "Welcome to RefillPro Admin Panel",
-    "hide_models": [],  # Ensure your model isn't hidden here
+
+    # 🔹 Control Sidebar Order
     "order_with_respect_to": [
-        "admin_portal.CustomUser",  # Ensure CustomUser is prioritized if needed
+        "admin_portal.CustomUser",
+        "product.Product",  # Keep products grouped properly
+        "orders.Order",  # Keep products grouped properly
+        "auth.Group",
     ],
-    "custom_links": {
-        "admin_portal": [  # Replace with your app name
-            # {
-            #     "name": "Theme Settings",
-            #     "url": "themesettings_changelist",  # Adjust for your app/model
-            #     "icon": "fas fa-paint-brush",  # Font Awesome icon for the link
-            #     "permissions": ["admin_portal.change_themesettings"],  # Permissions required
-            # },
-        ]
+   "hide_models": [
+        "admin_portal.CustomUser",      # Hides default Django Users section
+        "products.Product" ,
+        "orders.Order",
+        "orders.OrderDetails",
+        "auth.Group"    # Hides the separate "Products" section
+    ],
+
+    "navigation_expanded": True,
+
+    # 🔹 Customize Icons
+    "icons": {
+        "auth.User": "fas fa-user",
+        "admin_portal.CustomUser": "fas fa-users",
+        "product.Product": "fas fa-box",
+        "auth.Group": "fas fa-user-shield",
     },
-    "navigation_expanded": True,  # Ensure the sidebar is always expanded
+
+    # 🔹 Group Users & Products Together
+    "custom_links": {
+        "admin_portal": [  # Keep everything under "Users"
+            {
+                "name": "Manage Users",
+                "url": "admin:admin_portal_customuser_changelist",
+                "icon": "fas fa-user",
+            },
+            {
+                "name": "Manage User Group",
+                "url": "/admin/auth/group/",
+                "icon": "fas fas fa-users",
+            },
+            
+            {
+                "name": "Manage Products",
+                "url": "/admin/products/product/",
+                "icon": "fas fa-box-open",
+            },
+            {
+                "name": "Orders",
+                "url": "/admin/orders/order/",
+                "icon": "fas fa-shopping-cart",
+            },
+             {
+                "name": "Sales",
+                "url": "/admin/products/product/",
+                "icon": "fas fa-line-chart",
+            },
+             {
+                "name": "Reports",
+                "url": "/admin/products/product/",
+                "icon": "fas fa-file-excel",
+            },
+             {
+                "name": "Settings",
+                "url": "/admin/products/product/",
+                "icon": "fas fa-cogs",
+            },
+        ],
+    },
 }
+
+
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (

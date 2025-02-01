@@ -83,11 +83,3 @@ class CustomUserAdmin(UserAdmin):
 admin.site.register(CustomUser, CustomUserAdmin)  # Ensure it's registered
 
 
-@admin.register(ThemeSettings)
-class ThemeSettingsAdmin(admin.ModelAdmin):
-    list_display = ["site_title", "theme", "dark_mode_enabled"]
-    list_editable = ["theme", "dark_mode_enabled"]
-    fieldsets = (
-        ("General", {"fields": ("site_title",)}),
-        ("Appearance", {"fields": ("theme", "dark_mode_enabled")}),
-    )
