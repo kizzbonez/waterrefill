@@ -27,6 +27,7 @@ SECRET_KEY = 'django-insecure-rz#k-y#odp(t@3%%0j&hj1b(h2df*c$3uc=*!kr^nl-(!4xm5(
 DEBUG = True
 
 ALLOWED_HOSTS = []
+#ALLOWED_HOSTS = ['157.173.221.215','refillpro.store']
 
 
 # Application definition
@@ -66,7 +67,7 @@ STATICFILES_DIRS = [BASE_DIR / 'admin_portal/static']
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'admin_portal/templates',BASE_DIR / 'templates'],
+        'DIRS': [BASE_DIR / 'admin_portal/templates',BASE_DIR / ''],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -91,6 +92,7 @@ DATABASES = {
         'NAME': 'waterrefill',
         'USER': 'root',
         'PASSWORD': '',
+        #'PASSWORD': 'Informatics@2025',
         'HOST': 'localhost',
         'PORT': '3306',
     }
