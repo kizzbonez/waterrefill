@@ -1,0 +1,41 @@
+{% extends "admin/base_site.html" %}
+
+{% block extrastyle %}
+    <style>
+        .store-settings-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+{% endblock %}
+
+{% block content_title %}
+    <h1>Store Settings</h1>
+{% endblock %}
+
+{% block breadcrumbs %}
+    <div class="breadcrumbs">
+        <a href="{% url 'admin:index' %}">Home</a> &raquo;
+        Store Settings
+    </div>
+{% endblock %}
+
+{% block content %}
+    <div id="content-main">
+        <div class="store-settings-container">
+            <h2>Store Settings</h2>
+
+            {% if settings.favicon %}
+                <p><strong>Favicon:</strong> <img src="{{ settings.favicon.url }}" width="32"></p>
+            {% endif %}
+
+            <p><a href="{% url 'admin:index' %}" class="button">Back to Admin Dashboard</a></p>
+        </div>
+    </div>
+{% endblock %}
+
+{% block sidebar %}
+    {% include "admin/app_list.html" with app_list=site.each_context.request.available_apps %}
+{% endblock %}

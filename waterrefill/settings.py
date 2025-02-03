@@ -9,9 +9,10 @@ https://docs.djangoproject.com/en/4.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.0/ref/settings/
 """
-
+import os
 from pathlib import Path
 from datetime import timedelta
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -44,7 +45,9 @@ INSTALLED_APPS = [
     'admin_portal',
     'api',
     'products',
-    'orders'
+    'orders',
+    'payments',
+    'settings'
 
 ]
 
@@ -63,7 +66,7 @@ STATICFILES_DIRS = [BASE_DIR / 'admin_portal/static']
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'admin_portal/templates'],
+        'DIRS': [BASE_DIR / 'admin_portal/templates',BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -171,6 +174,8 @@ JAZZMIN_SETTINGS = {
         "products.Product" ,
         "orders.Order",
         "orders.OrderDetails",
+        "payments.Payment",
+        "settings.StoreSettings",
         "auth.Group"    # Hides the separate "Products" section
     ],
 
@@ -209,18 +214,13 @@ JAZZMIN_SETTINGS = {
                 "icon": "fas fa-shopping-cart",
             },
              {
-                "name": "Sales",
-                "url": "/admin/products/product/",
-                "icon": "fas fa-line-chart",
-            },
-             {
-                "name": "Reports",
-                "url": "/admin/products/product/",
-                "icon": "fas fa-file-excel",
+                "name": "Payments",
+                "url": "/admin/payments/payment/",
+                "icon": "fas fa-money-bill-wave",
             },
              {
                 "name": "Settings",
-                "url": "/admin/products/product/",
+                "url": "/admin/settings/storesettings/1/change/",
                 "icon": "fas fa-cogs",
             },
         ],
@@ -234,3 +234,11 @@ REST_FRAMEWORK = {
         'api.authentication.CustomJWTAuthentication',
     ),
 }
+
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'  # Use your email provider's SMTP server
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'your_email@gmail.com'  # Replace with your email
+EMAIL_HOST_PASSWORD = 'your_email_password'  # Use an app password for security

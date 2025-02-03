@@ -1,0 +1,10 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<h1>Store Settings</h1>
+<p><strong>Store Name:</strong> {{ settings.store_name }}</p>
+<p><strong>Timezone:</strong> {{ settings.timezone }}</p>
+{% if settings.favicon %}
+    <p><strong>Favicon:</strong> <img src="{{ settings.favicon.url }}" width="32"></p>
+{% endif %}
+{% endblock %}

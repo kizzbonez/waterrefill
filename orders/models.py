@@ -27,7 +27,7 @@ class OrderDetails(models.Model):
     )
 
     order = models.ForeignKey('Order', on_delete=models.CASCADE, related_name='order_details')
-    product = models.ForeignKey('products.Product', on_delete=models.CASCADE, related_name='order_details', null=False)
+    product = models.ForeignKey('products.Product', on_delete=models.CASCADE, related_name='order_details', null=True)
     delivery_datetime = models.DateTimeField()
     status = models.IntegerField(choices=ORDER_STATUS_CHOICES, default=0)
     remarks = models.TextField(blank=True, null=True)
