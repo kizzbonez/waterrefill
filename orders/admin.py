@@ -49,16 +49,16 @@ class OrderDetailsInline(admin.TabularInline):
     form = OrderDetailsForm  # Attach the form with proper queryset
     extra = 1
     readonly_fields = ('total_price',)
-    fields = ('product', 'delivery_datetime','quantity', 'status', 'remarks', 'total_price')
+    fields = ('product', 'quantity',  'total_price')
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ('id', 'get_assigned_to_name', 'get_customer_name', 'created_at','get_total_price','get_order_status')
+    list_display = ('id', 'get_assigned_to_name', 'get_customer_name', 'created_at','get_total_price','status','delivery_datetime')
     search_fields = ('assigned_to__first_name', 'assigned_to__last_name', 'customer__first_name', 'customer__last_name')
     list_filter = ('customer', 'assigned_to', 'created_at')
     form = OrderAdminForm # Attach the form with proper queryset
     fieldsets = [
-        ('Order Info', {'fields': ('assigned_to', 'customer')}),
+        ('Order Info', {'fields': ('assigned_to', 'customer', 'status', 'delivery_datetime', 'remarks')}),
         ('Map Location', {'fields': ('map_display',)}),  # Map Display
     ]
 
@@ -79,24 +79,7 @@ class OrderAdmin(admin.ModelAdmin):
             return f"{obj.assigned_to.last_name}, {obj.assigned_to.first_name}"
         return "No Assigned User"
     
-    def get_order_status(self, obj):
-        """Determines the overall status of the order based on its OrderDetails."""
-        statuses = obj.order_details.values_list('status', flat=True)
 
-        if not statuses:  # If no OrderDetails exist, return "No Order Details"
-            return "No Order Details"
-
-        if 0 in statuses:  # If at least one order detail is pending
-            return "Pending"
-        elif all(status == 1 for status in statuses):  # If all are Delivered
-            return "Delivered"
-        elif all(status == 2 for status in statuses):  # If all are Cancelled
-            return "Cancelled"
-        else:
-            return "Partially Delivered/Cancelled"
-
-    get_order_status.short_description = "Order Status"
-    get_order_status.admin_order_field = 'order_details__status'  # Enable sorting
 
     def get_customer_name(self, obj):
         """Display customer full name in 'Last, First' format."""
@@ -147,8 +130,8 @@ class OrderAdmin(admin.ModelAdmin):
 
 @admin.register(OrderDetails)
 class OrderDetailsAdmin(admin.ModelAdmin):
-    list_display = ('id', 'order', 'get_products', 'delivery_datetime', 'status', 'total_price')
-    list_filter = ('status', 'delivery_datetime')
+    list_display = ('id', 'order', 'get_products',  'total_price')
+    list_filter = ('order', 'total_price')
     search_fields = ('order__id',)
     form = OrderDetailsForm  # Use the form with correct product queryset
 
