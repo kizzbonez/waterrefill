@@ -1,0 +1,130 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid">
+    <h2 class="mb-4">Admin Dashboard</h2>
+
+    <!-- ✅ Analytics Cards -->
+    <div class="row">
+        <div class="col-lg-3 col-md-6">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5>Total Customers</h5>
+                    <h2>{{ total_users }}</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5>Total Orders</h5>
+                    <h2>{{ total_orders }}</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <h5>Total Revenue</h5>
+                    <h2>{{ total_revenue }}</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <h5>Pending Orders</h5>
+                    <h2>{{ pending_orders }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ✅ Sales Chart -->
+    <div class="row mt-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <h5>Sales Overview</h5>
+                    <canvas id="salesChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- ✅ Recent Orders -->
+        <div class="col-md-4">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card bg-danger text-white">
+                        <div class="card-body">
+                            <form method="GET" class="mb-4">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <label for="start_date">Start Date:</label>
+                                        <input type="date" id="start_date" name="start_date" value="{{ start_date }}" class="form-control">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="end_date">End Date:</label>
+                                        <input type="date" id="end_date" name="end_date" value="{{ end_date }}" class="form-control">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label>&nbsp;</label>
+                                        <button type="submit" class="btn btn-primary btn-block">Filter</button>
+                                    </div>
+                                </div>
+                            </form>
+                            <h5>Forecast Sales</h5>
+                            <h2>{{ forecast }}</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5>Recent Orders</h5>
+                            <ul class="list-group">
+                                {% for order in recent_orders %}
+                                    <li class="list-group-item">
+                                        <strong><a href="orders/order/{{order.order_id}}/change/">{{ order.customer_name }}</a></strong> - ${{ order.total_amount }}
+                                        <span class="badge bg-info">{{ order.status }}</span>
+                                    </li>
+                                {% empty %}
+                                    <li class="list-group-item">No recent orders.</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+            </div>
+        </div>
+
+        </div>
+    </div>
+
+</div>
+
+<!-- ✅ Chart.js for Graphs -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        var ctx = document.getElementById('salesChart').getContext('2d');
+        var salesChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: {{ sales_labels|safe }},
+                datasets: [{
+                    label: 'Sales',
+                    data: {{ sales_data }},
+                    borderColor: 'blue',
+                    fill: false
+                }]
+            }
+        });
+    });
+</script>
+{% endblock %}

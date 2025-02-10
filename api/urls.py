@@ -1,7 +1,7 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from . import views
-from .api_views.users import UserInfoView ,RiderEditClientView ,RiderClientListView
+from .api_views.users import UserInfoView ,RiderEditClientView ,RiderClientListView, UserRegistrationView ,PasswordResetRequestView, PasswordResetConfirmView
 from .api_views.orders import OrderListCreateView, OrderDetailView
 from .api_views.products import ProductListView
 from .api_views.logout import LogoutView
@@ -22,7 +22,9 @@ urlpatterns = [
     path('refresh/', TokenRefreshView.as_view(), name='token_refresh'),  # Refresh token
     path('user/', UserInfoView.as_view(), name='user'),  # Example API
     path('logout/', LogoutView.as_view(), name='logout'),
-
+    path('register/', UserRegistrationView.as_view(), name='user-register'),
+    path('password-reset/request/', PasswordResetRequestView.as_view(), name='password-reset-request'),
+    path('password-reset/confirm/', PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
     #access product list
     path('products/', ProductListView.as_view(), name='product_list'),
 

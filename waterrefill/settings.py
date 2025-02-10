@@ -239,8 +239,8 @@ REST_FRAMEWORK = {
 
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'  # Use your email provider's SMTP server
+EMAIL_HOST = 'sandbox.smtp.mailtrap.io'  # Use your email provider's SMTP server
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'your_email@gmail.com'  # Replace with your email
-EMAIL_HOST_PASSWORD = 'your_email_password'  # Use an app password for security
+EMAIL_HOST_USER = '9021c0f8aac191'  # Replace with your email
+EMAIL_HOST_PASSWORD = '4cecdcdbd24b41'  # Use an app password for security

@@ -19,6 +19,12 @@ class Order(models.Model):
     delivery_datetime = models.DateTimeField(null=True, blank=True)
     remarks = models.TextField(blank=True, null=True)
     status = models.IntegerField(choices=ORDER_STATUS_CHOICES, default=0)
+    def get_status_display(self):
+        """✅ Helper function to return the status as text"""
+        return dict(self.ORDER_STATUS_CHOICES).get(self.status, "Unknown")
+    def get_total_amount(self):
+        """✅ Calculate total amount based on order details"""
+        return sum(item.total_price  for item in self.order_details.all())
     def __str__(self):
         return f"Order #{self.id} - Customer: {self.customer.username if self.customer else 'N/A'}"
 
