@@ -153,3 +153,21 @@ class PasswordResetConfirmView(APIView):
             return Response({"message": "Password has been reset successfully."}, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class RiderClientDetailView(APIView):
+    """ View for Client Info """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, user_id):
+       
+        rider = request.user
+        # 🔹 Ensure the rider is authenticated and has the correct role
+        if not rider or rider.is_anonymous:
+            return Response({"error": "Authentication failed, user not found"}, status=status.HTTP_401_UNAUTHORIZED)
+
+        if rider.user_type != 1:  # Only riders can access this endpoint
+            return Response({"error": "Permission denied. Only riders can view clients."}, status=status.HTTP_403_FORBIDDEN)
+        user = User.objects.get(pk=user_id,user_type=0)
+        serializer = UserSerializer(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)

@@ -5,7 +5,8 @@ from rest_framework.views import APIView
 from orders.models import Order, OrderDetails
 from api.serializers.orders import OrderSerializer, OrderDetailsSerializer
 from products.models import Product  # Ensure Product model exists
-
+from django.contrib.auth import get_user_model
+User = get_user_model()  # Get the correct user model
 class OrderListCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -17,12 +18,23 @@ class OrderListCreateView(APIView):
 
     def post(self, request):
         """ Create an order with order details (product ID and quantity only). """
+        assigned_to_id = request.data.get("assigned_to")  # Get assigned_to from request
+
         serializer = OrderSerializer(data=request.data)
         
         if serializer.is_valid():
-            order = serializer.save(customer=request.user)  # Assign authenticated user as the customer
-            
-            # Handle order details manually
+            # ✅ Ensure assigned_to is saved correctly
+            assigned_to_user = None
+            if assigned_to_id:  # Check if assigned_to is provided
+                try:
+                    assigned_to_user = User.objects.get(id=assigned_to_id)  # Fetch assigned user
+                except User.DoesNotExist:
+                    return Response({"error": f"User with ID {assigned_to_id} not found."}, status=status.HTTP_400_BAD_REQUEST)
+
+            # ✅ Save the order with customer and assigned_to
+            order = serializer.save(customer=request.user, assigned_to=assigned_to_user)
+
+            # ✅ Handle order details manually
             order_details_data = request.data.get('order_details', [])
             for detail in order_details_data:
                 product_id = detail.get("product")
@@ -39,6 +51,7 @@ class OrderListCreateView(APIView):
             return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 class OrderDetailView(APIView):

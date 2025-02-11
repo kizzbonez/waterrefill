@@ -1,9 +1,9 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from . import views
-from .api_views.users import UserInfoView ,RiderEditClientView ,RiderClientListView, UserRegistrationView ,PasswordResetRequestView, PasswordResetConfirmView
+from .api_views.users import UserInfoView ,RiderClientDetailView,RiderEditClientView ,RiderClientListView, UserRegistrationView ,PasswordResetRequestView, PasswordResetConfirmView
 from .api_views.orders import OrderListCreateView, OrderDetailView
-from .api_views.products import ProductListView
+from .api_views.products import ProductListView ,ProductDetailView 
 from .api_views.logout import LogoutView
 from .api_views.payments import ClientPaymentView, RiderPaymentView
 from .custom_serializers import CustomTokenObtainPairSerializer, RiderTokenObtainPairSerializer
@@ -27,7 +27,7 @@ urlpatterns = [
     path('password-reset/confirm/', PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
     #access product list
     path('products/', ProductListView.as_view(), name='product_list'),
-
+    path('products/<int:pk>/', ProductDetailView.as_view(), name='product_detail'),
 
     #orders
     path('orders/', OrderListCreateView.as_view(), name='order-list-create'),
@@ -41,6 +41,7 @@ urlpatterns = [
     #endpoints for rider only
     path('rider/login/', RiderTokenObtainPairView.as_view(), name='rider_token_obtain_pair'),  # Rider login
     path('rider/all-client/', RiderClientListView.as_view(), name='list-clients'),  # Riders edit client details
+    path('rider/get-client/<int:user_id>/', RiderClientDetailView.as_view(), name='client-detail'),
     path('rider/edit-client/<int:user_id>/', RiderEditClientView.as_view(), name='edit-client'),  # Riders edit client details
 
 
