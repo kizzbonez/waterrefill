@@ -5,7 +5,10 @@ from .models import Order, OrderDetails
 from products.models import Product  
 from admin_portal.models import CustomUser as User 
 from django.db import models
-
+from django.http import HttpResponse
+import openpyxl
+from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 class OrderDetailsForm(forms.ModelForm):
     """Ensures products appear in the dropdown."""
     class Meta:
@@ -55,15 +58,48 @@ class OrderDetailsInline(admin.TabularInline):
 class OrderAdmin(admin.ModelAdmin):
     list_display = ('id', 'get_assigned_to_name', 'get_customer_name', 'created_at','get_total_price','status','delivery_datetime')
     search_fields = ('assigned_to__first_name', 'assigned_to__last_name', 'customer__first_name', 'customer__last_name')
-    list_filter = ('customer', 'assigned_to', 'created_at')
+    list_filter = ('customer', 'assigned_to',         ('created_at', admin.DateFieldListFilter))  # Adds a basic date filter)
     form = OrderAdminForm # Attach the form with proper queryset
     fieldsets = [
         ('Order Info', {'fields': ('assigned_to', 'customer', 'status', 'delivery_datetime', 'remarks')}),
         ('Map Location', {'fields': ('map_display',)}),  # Map Display
     ]
-
+    actions = ["export_to_excel"]  #  Add the export action
     readonly_fields = ('created_at', 'map_display')
     inlines = [OrderDetailsInline]
+
+
+    def export_to_excel(self, request, queryset):
+        """Exports selected orders along with their order details to an Excel file."""
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Order Details Data"
+
+        # Define headers
+        headers = ["Order ID", "Customer", "Assigned To", "Product", "Quantity", "Total Price", "Status", "Order Date"]
+        ws.append(headers)
+
+        # Iterate through selected orders and their details
+        for order in queryset:
+            for detail in order.order_details.all():
+                ws.append([
+                    order.id,
+                    order.customer.get_full_name() if order.customer else "No Customer",
+                    order.assigned_to.get_full_name() if order.assigned_to else "Not Assigned",
+                    detail.product.name if detail.product else "No Product",
+                    detail.quantity,
+                    detail.total_price,
+                    order.get_status_display(),
+                    order.created_at.replace(tzinfo=None) if order.created_at else None
+                ])
+
+        # Prepare response for Excel file download
+        response = HttpResponse(content_type="application/vnd.openpyxl")
+        response["Content-Disposition"] = 'attachment; filename="order_details_export.xlsx"'
+        wb.save(response)
+        return response
+
+    export_to_excel.short_description = "Export selected Orders to Excel"
 
     def get_total_price(self, obj):
         """Calculates the total price of all OrderDetails related to this order."""

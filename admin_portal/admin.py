@@ -14,10 +14,13 @@ from .models import CustomUser # Import your models
 from orders.models import Order , OrderDetails
 from payments.models import Payment
 from settings.models import StoreSettings
-from django.db.models import Sum
+from django.db.models import Sum, Min
 from django.db.models.functions import TruncMonth, TruncDay
 import locale
 from datetime import datetime
+from django.utils import timezone
+from datetime import timedelta
+from django.utils.translation import gettext_lazy as _
 locale.setlocale(locale.LC_ALL, 'en_PH.UTF-8')
 class CustomAdmin(admin.AdminSite):
     """Custom Admin Dashboard with Jazzmin (Without admin_site)"""
@@ -26,62 +29,93 @@ class CustomAdmin(admin.AdminSite):
 
     
 
-    def calculate_wma(self, sales_data, period=3):
+    def calculate_wma(self, sales_data, growth_rate=0.0, forecast_days=6):
         """
-        ✅ Compute Weighted Moving Average (WMA) on Daily Sales
-        :param sales_data: List of revenue values per day
-        :param period: Number of days to consider in WMA (default=3)
-        :return: List of WMA values for each period
+        Calculate the Weighted Moving Average (WMA) for the given sales data
+        and forecast future sales with an optional growth rate.
+        
+        :param sales_data: List of historical sales
+        :param growth_rate: Daily growth rate for forecasting future sales (default is 0% growth)
+        :param forecast_days: Number of days to forecast (default is 6)
+        :return: List of forecasted sales for future dates
         """
-        wma_values = []
-        weights = list(range(1, period + 1))  # e.g., [1, 2, 3] for 3-day WMA
-        weight_sum = sum(weights)  # Sum of weights (e.g., 1+2+3 = 6)
+        # Define weights (e.g., more recent sales data has higher weight)
+        weights = list(range(1, len(sales_data) + 1))  # weights from 1 to n
+        total_weight = sum(weights)
 
-        for i in range(len(sales_data)):
-            if i < period - 1:
-                wma_values.append(None)  # Not enough data points for WMA
-                continue
+        # Calculate WMA for the last available day
+        wma = sum([s * w for s, w in zip(sales_data, weights)]) / total_weight
 
-            weighted_sum = sum(sales_data[i - j] * weights[j] for j in range(period))
-            wma_values.append(round(weighted_sum / weight_sum, 2))  # ✅ Rounded WMA
+        # Print WMA for the last day (just for clarity)
+        print(f"Weighted Moving Average for the last available day: {wma}")
+
+        # Forecast sales for the next `forecast_days` using the WMA and growth rate
+        forecast_sales = []
+        for i in range(forecast_days):  # Forecasting `forecast_days` days
+            forecasted_value = wma * (1 + growth_rate)**i  # Adjust for growth rate
+            forecast_sales.append(forecasted_value)
+
+        return forecast_sales
 
 
         return wma_values
     def calculate_mape(self, actual_sales, forecast_sales):
         """
-        ✅ Compute Mean Absolute Percentage Error (MAPE) on Daily Sales
-        :param actual_sales: List of actual revenue per day
-        :param forecast_sales: List of daily WMA (forecasted) values
+        Compute the Mean Absolute Percentage Error (MAPE) between actual and forecasted sales.
+        
+        :param actual_sales: List of actual sales values for the forecast period
+        :param forecast_sales: List of forecasted sales values for the same period
         :return: MAPE percentage
         """
         errors = []
-        for i in range(len(actual_sales)):
-            if forecast_sales[i] is None or actual_sales[i] == 0:
-                continue  # ✅ Skip if there's not enough data or actual sales are zero
-
-            abs_percentage_error = abs((actual_sales[i] - forecast_sales[i]) / actual_sales[i]) * 100
+        for actual, forecast in zip(actual_sales, forecast_sales):
+            if actual == 0:
+                continue  # Skip if actual sales are zero
+            abs_percentage_error = abs((actual - forecast) / actual) * 100
             errors.append(abs_percentage_error)
 
-        return round(sum(errors) / len(errors), 2) if errors else 0  # ✅ Return rounded MAPE value
+        # Calculate and return the average MAPE
+        return sum(errors) / len(errors) if errors else 0
 
 
     def index(self, request, extra_context=None):
         """Inject dashboard data into the default Django Admin"""
         if extra_context is None:
             extra_context = {}
+        
+
+        # Get start and end date from request
         start_date_str = request.GET.get("start_date")
         end_date_str = request.GET.get("end_date")
 
-        if start_date_str and end_date_str:
-            try:
-                start_date = datetime.strptime(start_date_str, "%Y-%m-%d")
-                end_date = datetime.strptime(end_date_str, "%Y-%m-%d")
-            except ValueError:
-                start_date = timezone.now() - timezone.timedelta(days=30)
-                end_date = timezone.now()
-        else:
-            start_date = timezone.now() - timezone.timedelta(days=30)
-            end_date = timezone.now()
+        # Define the expected date format
+        date_format = "%Y-%m-%d"
+
+        try:
+            # Convert string dates to datetime (if provided)
+            start_date_fi = datetime.strptime(start_date_str, date_format) if start_date_str else None
+            end_date_fi = datetime.strptime(end_date_str, date_format) if end_date_str else None
+        except ValueError:
+            # Handle invalid date formats
+            start_date_fi = None
+            end_date_fi = None
+
+        # ✅ If no valid start date, use the first entry from the database
+        if start_date_fi is None:
+            first_payment = Payment.objects.filter(status=1).aggregate(earliest=Min("created_at"))["earliest"]
+            start_date_fi = first_payment if first_payment else timezone.now() - timedelta(days=30)
+
+        # ✅ If no valid end date, use today's date
+        if end_date_fi is None:
+            end_date_fi = timezone.now()
+
+        # ✅ Ensure start_date_fi is before end_date_fi
+        if start_date_fi > end_date_fi:
+            start_date_fi, end_date_fi = end_date_fi, start_date_fi  # Swap if reversed
+
+        # Calculate the number of days in the range
+        date_diff = end_date_fi  - start_date_fi 
+        num_days = date_diff.days  # This will give you the number of days between the two dates
         #  Fetch analytics data
 
          #  Aggregate total revenue per month
@@ -93,22 +127,32 @@ class CustomAdmin(admin.AdminSite):
             .order_by("month")  #  Order by month
         )
 
+        first_payment = Payment.objects.filter(status=1).aggregate(earliest=Min("created_at"))["earliest"]
+        start_date = first_payment if first_payment else timezone.now() - timedelta(days=30)
 
         today = timezone.now()
-        last_30_days = today - timezone.timedelta(days=30)
+        #last_30_days = today - timezone.timedelta(days=30)
+       # start_date = today - timedelta(days=30)
 
-        daily_sales = (
-            Payment.objects.filter(status=1, created_at__range=[start_date, end_date])  # ✅ Only last 30 days
-            .annotate(day=TruncDay("created_at"))  # ✅ Group by day
-            .values("day")
-            .annotate(total=Sum("amount"))  # ✅ Sum payments per day
+        # ✅ Fetch sales data (only existing sales days)
+        sales_query = Payment.objects.filter(status=1, created_at__range=[start_date, today]) \
+            .annotate(day=TruncDay("created_at")) \
+            .values("day") \
+            .annotate(total=Sum("amount")) \
             .order_by("day")
-        )
 
+        # ✅ Convert to dictionary for fast lookup
+        sales_dict = {entry["day"].date(): float(entry["total"]) for entry in sales_query}
 
-        # ✅ Extract labels and revenue data for daily sales
-        daily_sales_labels = [entry["day"].strftime("%b %d") for entry in daily_sales]  # ['Feb 01', 'Feb 02']
-        daily_sales_data = [float(entry["total"]) for entry in daily_sales]
+        # ✅ Generate full date range from `start_date` to `today`
+        all_dates = pd.date_range(start=start_date.date(), end=today.date(), freq="D")
+
+        # ✅ Fill in missing days with 0 sales
+        filled_sales = [{"day": date, "total": sales_dict.get(date.date(), 0)} for date in all_dates]
+
+        # ✅ Extract labels & data for charts
+        daily_sales_labels = [entry["day"].strftime("%b %d") for entry in filled_sales]
+        daily_sales_data = [entry["total"] for entry in filled_sales]
 
 
 
@@ -118,10 +162,10 @@ class CustomAdmin(admin.AdminSite):
         sales_labels = [entry["month"].strftime("%b %Y") for entry in monthly_sales]  # Example: ['Jan 2024', 'Feb 2024']
         sales_data = [float(entry["total"]) for entry in monthly_sales]  # Convert to float for Chart.js
         # Calculate Weighted Moving Average (WMA)
-        wma_values = self.calculate_wma(   daily_sales_data)
-        print(      daily_sales_data)
+        wma_value = self.calculate_wma(   daily_sales_data, 0,num_days)
+
          # ✅ Calculate MAPE (Mean Absolute Percentage Error)
-        mape_value = self.calculate_mape(   daily_sales_data, wma_values)
+        mape_value = self.calculate_mape(   daily_sales_data, wma_value)
         now = timezone.now()
         current_month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         next_month_start = (current_month_start + timezone.timedelta(days=32)).replace(day=1)
@@ -138,7 +182,7 @@ class CustomAdmin(admin.AdminSite):
         extra_context["pending_orders"] = Order.objects.filter(status=0).count()
         extra_context["sales_labels"] =  sales_labels
         extra_context["sales_data"] =   sales_data # Example sales data
-        extra_context["forecast"] =   mape_value # Example sales data
+        extra_context["forecast"] =    locale.currency(sum(wma_value), grouping=True)  # Example sales data
         extra_context["start_date"] =  start_date_str
         extra_context["end_date"] =  end_date_str
             #  Fetch order data with user and total amount
@@ -279,8 +323,8 @@ class CustomUserAdmin(UserAdmin):
     model = CustomUser
     form = CustomUserForm  # Use the updated form
     
-    list_display = ("username", "email", "user_type", "is_active", "is_staff")
-    ordering = ('id',)  # Optional: Controls sorting
+    list_display = ("username", "email", "user_type", "is_active", "is_staff","date_joined")
+    list_filter = ("user_type", "is_active", "is_staff", "date_joined")
     actions = ["export_to_excel"]  #  Add the export action
 
     # Allow Admins to export user data
