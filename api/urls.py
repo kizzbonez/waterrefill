@@ -5,7 +5,7 @@ from .api_views.users import UserInfoView ,RiderClientDetailView,RiderEditClient
 from .api_views.orders import OrderListCreateView, OrderDetailView
 from .api_views.products import ProductListView ,ProductDetailView 
 from .api_views.logout import LogoutView
-from .api_views.payments import ClientPaymentView, RiderPaymentView
+from .api_views.payments import ClientPaymentView, RiderPaymentView, RiderPaymentGetView
 from .custom_serializers import CustomTokenObtainPairSerializer, RiderTokenObtainPairSerializer
 
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -37,7 +37,7 @@ urlpatterns = [
     #payment
     path('payments/', ClientPaymentView.as_view(), name='client-payments'),  # Clients: Add & View Payments
     path('rider/payments/', RiderPaymentView.as_view(), name='rider-payments'),  # Riders: View & Create Payments
-
+    path('rider/payments/<int:id>/', RiderPaymentGetView.as_view(), name='rider-get-payments'),  # Riders: View & Create Payments
     #endpoints for rider only
     path('rider/login/', RiderTokenObtainPairView.as_view(), name='rider_token_obtain_pair'),  # Rider login
     path('rider/all-client/', RiderClientListView.as_view(), name='list-clients'),  # Riders edit client details

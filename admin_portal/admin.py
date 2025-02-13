@@ -1,5 +1,6 @@
 import openpyxl
 import pandas as pd
+import numpy as np
 from django.utils import timezone
 from django.http import HttpResponse
 from django.contrib import admin
@@ -28,7 +29,6 @@ class CustomAdmin(admin.AdminSite):
     index_template = "admin/index.html"  #  Use custom index template
 
     
-
     def calculate_wma(self, sales_data, growth_rate=0.0, forecast_days=6):
         """
         Calculate the Weighted Moving Average (WMA) for the given sales data
@@ -39,12 +39,30 @@ class CustomAdmin(admin.AdminSite):
         :param forecast_days: Number of days to forecast (default is 6)
         :return: List of forecasted sales for future dates
         """
+
+        # Convert sales data to a DataFrame for easier manipulation
+        df = pd.DataFrame({'sales': sales_data})
+
+        # 1. Replace zeros with NaN (so we can fill them with meaningful values)
+        df['sales'] = df['sales'].replace(0, np.nan)
+
+        # 2. Apply smoothing - Choose one:
+        df['sales'] = df['sales'].interpolate(method='linear')  # Linear Interpolation
+        # df['sales'] = df['sales'].fillna(df['sales'].rolling(3, min_periods=1).mean())  # Rolling Mean
+        # df['sales'] = df['sales'].fillna(df['sales'].ewm(span=3, adjust=False).mean())  # Exponential Smoothing
+
+        # If any zeros are still present (e.g., at the start), replace them with a small value
+        df['sales'] = df['sales'].fillna(method='bfill')  # Fill remaining NaN with the next available value
+
+        # Convert back to list after smoothing
+        smoothed_sales = df['sales'].tolist()
+
         # Define weights (e.g., more recent sales data has higher weight)
-        weights = list(range(1, len(sales_data) + 1))  # weights from 1 to n
+        weights = list(range(1, len(smoothed_sales) + 1))  # weights from 1 to n
         total_weight = sum(weights)
 
         # Calculate WMA for the last available day
-        wma = sum([s * w for s, w in zip(sales_data, weights)]) / total_weight
+        wma = sum([s * w for s, w in zip(smoothed_sales, weights)]) / total_weight
 
         # Print WMA for the last day (just for clarity)
         print(f"Weighted Moving Average for the last available day: {wma}")
@@ -58,7 +76,6 @@ class CustomAdmin(admin.AdminSite):
         return forecast_sales
 
 
-        return wma_values
     def calculate_mape(self, actual_sales, forecast_sales):
         """
         Compute the Mean Absolute Percentage Error (MAPE) between actual and forecasted sales.
@@ -183,6 +200,7 @@ class CustomAdmin(admin.AdminSite):
         extra_context["sales_labels"] =  sales_labels
         extra_context["sales_data"] =   sales_data # Example sales data
         extra_context["forecast"] =    locale.currency(sum(wma_value), grouping=True)  # Example sales data
+        extra_context["mape"] =  f"{mape_value:.2f}%"  # Example MAPE value
         extra_context["start_date"] =  start_date_str
         extra_context["end_date"] =  end_date_str
             #  Fetch order data with user and total amount

@@ -87,8 +87,7 @@ class OrderDetailView(APIView):
             if action == "update":
                 """ Update the order if action='update' """
                 order_data = request.data
-                order_details_data = order_data.pop('order_details', [])  # Extract order details
-
+                order_details_data = order_data.get('order_details', [])  # Extract order details
                 serializer = OrderSerializer(order, data=order_data, partial=True)
                 if serializer.is_valid():
                     serializer.save()
