@@ -83,23 +83,57 @@
                     </div>
                 </div>
             </div>
-            <div class="row">
-                <div class="col-md-12">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5>Recent Orders</h5>
-                            <ul class="list-group">
-                                {% for order in recent_orders %}
-                                    <li class="list-group-item">
-                                        <strong><a href="orders/order/{{order.order_id}}/change/">{{ order.customer_name }}</a></strong> - ${{ order.total_amount }}
-                                        <span class="badge bg-info">{{ order.status }}</span>
-                                    </li>
+        <!-- ✅ Critical Products Section -->
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="text-danger">⚠️ Critical Products (Low Stock)</h5>
+                        <table class="table table-bordered">
+                            <thead class="thead-dark">
+                                <tr>
+                                    <th>Product Name</th>
+                                    <th>Stock</th>
+                                    <th>Alert Level</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for product in critical_products %}
+                                    <tr class="{% if product.stock == 0 %}bg-danger text-white{% elif product.stock <= product.alert_level %}bg-warning{% endif %}">
+                                        <td><a href="/admin/products/product/{{ product.id }}/change/">{{ product.name }}</a></td>
+                                        <td>{{ product.stock }}</td>
+                                        <td>{{ product.alert_level }}</td>
+                                        <td>{{ product.status }}</td>
+                                    </tr>
                                 {% empty %}
-                                    <li class="list-group-item">No recent orders.</li>
+                                    <tr>
+                                        <td colspan="4" class="text-center">No critical products.</td>
+                                    </tr>
                                 {% endfor %}
-                            </ul>
-                        </div>
+                            </tbody>
+                        </table>
                     </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h5>Recent Orders</h5>
+                        <ul class="list-group">
+                            {% for order in recent_orders %}
+                                <li class="list-group-item">
+                                    <strong><a href="orders/order/{{order.order_id}}/change/">{{ order.customer_name }}</a></strong> - ${{ order.total_amount }}
+                                    <span class="badge bg-info">{{ order.status }}</span>
+                                </li>
+                            {% empty %}
+                                <li class="list-group-item">No recent orders.</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
 

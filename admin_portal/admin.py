@@ -4,6 +4,8 @@ import numpy as np
 from django.utils import timezone
 from django.http import HttpResponse
 from django.contrib import admin
+from django.db import models  # Import Django's models module
+
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.hashers import make_password
 from django import forms
@@ -22,6 +24,7 @@ from datetime import datetime
 from django.utils import timezone
 from datetime import timedelta
 from django.utils.translation import gettext_lazy as _
+from products.models import Product  # Import your Product model
 locale.setlocale(locale.LC_ALL, 'en_PH.UTF-8')
 class CustomAdmin(admin.AdminSite):
     """Custom Admin Dashboard with Jazzmin (Without admin_site)"""
@@ -192,6 +195,23 @@ class CustomAdmin(admin.AdminSite):
             created_at__gte=current_month_start,  #  Start of current month
             created_at__lt=next_month_start  #  Start of next month
         ).aggregate(Sum("amount"))["amount__sum"] or 0
+
+        critical_products = Product.objects.filter(stock__lte=models.F('stock_alert_level'))
+
+        # Format for display
+        formatted_critical_products = [
+            {
+                "id": product.id,
+                "name": product.name,
+                "stock": product.stock,
+                "alert_level": product.stock_alert_level,
+                "status": "Critical" if product.stock == 0 else "Low Stock"
+            }
+            for product in critical_products
+        ]
+
+        # Pass to the template
+        extra_context["critical_products"] = formatted_critical_products
 
         extra_context["total_revenue"] = locale.currency(total_revenue, grouping=True)
         extra_context["total_users"] = CustomUser.objects.count()

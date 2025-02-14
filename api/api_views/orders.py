@@ -17,7 +17,7 @@ class OrderListCreateView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request):
-        """ Create an order with order details (product ID and quantity only). """
+        """ Create an order, but reject it if it contains inactive products. """
         assigned_to_id = request.data.get("assigned_to")  # Get assigned_to from request
 
         serializer = OrderSerializer(data=request.data)
@@ -25,16 +25,16 @@ class OrderListCreateView(APIView):
         if serializer.is_valid():
             # ✅ Ensure assigned_to is saved correctly
             assigned_to_user = None
-            if assigned_to_id:  # Check if assigned_to is provided
+            if assigned_to_id:
                 try:
-                    assigned_to_user = User.objects.get(id=assigned_to_id)  # Fetch assigned user
+                    assigned_to_user = User.objects.get(id=assigned_to_id)
                 except User.DoesNotExist:
                     return Response({"error": f"User with ID {assigned_to_id} not found."}, status=status.HTTP_400_BAD_REQUEST)
 
-            # ✅ Save the order with customer and assigned_to
+            # ✅ Create the order first
             order = serializer.save(customer=request.user, assigned_to=assigned_to_user)
 
-            # ✅ Handle order details manually
+            # ✅ Process order details
             order_details_data = request.data.get('order_details', [])
             for detail in order_details_data:
                 product_id = detail.get("product")
@@ -42,6 +42,10 @@ class OrderListCreateView(APIView):
 
                 try:
                     product = Product.objects.get(id=product_id)
+                    if not product.status:  # ❌ Reject order if product is inactive
+                        order.delete()  # Rollback order creation
+                        return Response({"error": f"Product '{product.name}' is not available."}, status=status.HTTP_400_BAD_REQUEST)
+
                 except Product.DoesNotExist:
                     order.delete()  # Rollback order creation if product doesn't exist
                     return Response({"error": f"Product with ID {product_id} not found."}, status=status.HTTP_400_BAD_REQUEST)
@@ -51,6 +55,7 @@ class OrderListCreateView(APIView):
             return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 

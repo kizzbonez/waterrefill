@@ -3,13 +3,18 @@ from .models import Product
 from django.http import HttpResponse
 import openpyxl
 from django.utils.translation import gettext_lazy as _
+
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('name', 'price', 'stock', 'created_at')  # Columns shown in admin list view
+    list_display = ('name', 'price', 'stock', 'created_at','status')  # Columns shown in admin list view
     search_fields = ('name',)  # Enables search by product name
-    list_filter = ( ('created_at', admin.DateFieldListFilter), 'price')  # Adds filters for admin
+    list_filter = ( ('created_at', admin.DateFieldListFilter), 'price','status')  # Adds filters for admin
     ordering = ('-created_at',)  # Orders products by newest first
-    actions = ["export_to_excel"]  #  Add the export action
+    actions = ["export_to_excel"]  # Add the export action
+
+    def has_delete_permission(self, request, obj=None):
+        """Disables delete option for all products"""
+        return False
 
     # Allow Admins to export user data
     def export_to_excel(self, request, queryset):
@@ -18,8 +23,7 @@ class ProductAdmin(admin.ModelAdmin):
         ws = wb.active
         ws.title = "Product Data"
 
-        headers = ["ID", "Name", "Description", "Price", "Costing", 
-                   "Stocks"]
+        headers = ["ID", "Name", "Description", "Price", "Costing", "Stocks","Status"]
         ws.append(headers)  # Add headers
 
         for product in queryset:
@@ -29,8 +33,8 @@ class ProductAdmin(admin.ModelAdmin):
                 product.description,
                 product.price,
                 product.cost,
-                product.stock
-              
+                product.stock.
+                product.status
             ])
 
         response = HttpResponse(content_type="application/vnd.openpyxl")
@@ -39,4 +43,3 @@ class ProductAdmin(admin.ModelAdmin):
         return response
 
     export_to_excel.short_description = "Export selected Products to Excel"
-

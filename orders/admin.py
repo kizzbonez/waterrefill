@@ -18,7 +18,7 @@ class OrderDetailsForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Ensure products appear in dropdown
-        self.fields['product'].queryset = Product.objects.all()
+        self.fields['product'].queryset = Product.objects.filter(status=True)
 
         
           
@@ -166,16 +166,15 @@ class OrderAdmin(admin.ModelAdmin):
 
 @admin.register(OrderDetails)
 class OrderDetailsAdmin(admin.ModelAdmin):
-    list_display = ('id', 'order', 'get_products',  'total_price')
+    list_display = ('id', 'order', 'get_products', 'total_price')
     list_filter = ('order', 'total_price')
     search_fields = ('order__id',)
-    form = OrderDetailsForm  # Use the form with correct product queryset
+    form = OrderDetailsForm  # ✅ Use the filtered product queryset
 
     readonly_fields = ('total_price',)
 
     def get_products(self, obj):
         """Returns the product name."""
         return obj.product.name if obj.product else ""
-
 
     get_products.short_description = "Products"
