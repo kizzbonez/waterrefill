@@ -5,7 +5,7 @@ from django.http import HttpResponse
 import openpyxl
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-
+from settings.models import StoreSettings
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
     list_display = ('order_id', 'ref_code', 'status', 'payment_method', 'formatted_amount', 'proof', 'created_at')
@@ -15,17 +15,19 @@ class PaymentAdmin(admin.ModelAdmin):
         'payment_method',
         'amount'
     ) 
+
     ordering = ('-created_at',)  
     actions = ["export_to_excel"]  #  Add the export action
     def formatted_amount(self, obj):
+        store_settings = StoreSettings.objects.first()
         """Format amount as Philippine Pesos with thousand separators."""
         try:
             total_price = float(obj.amount) or 0  # Ensure the value is a number
-            return f"₱{total_price:,.2f}"  # Formats with Peso symbol and two decimal places
+            return f"{store_settings.currency_symbol}{total_price:,.2f}"  # Formats with Peso symbol and two decimal places
         except (ValueError, TypeError):
             return "Invalid Amount"
 
-    formatted_amount.short_description = "Amount (₱)"  # Renames column in admin panel
+    formatted_amount.short_description = "Amount ({store_settings.currency_symbol})"  # Renames column in admin panel
 
     def export_to_excel(self, request, queryset):
         """Exports selected payments to an Excel file."""

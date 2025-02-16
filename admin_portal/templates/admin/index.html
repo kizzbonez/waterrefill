@@ -43,48 +43,70 @@
             </div>
         </div>
     </div>
-
+    
     <!-- ✅ Sales Chart -->
     <div class="row mt-4">
         <div class="col-md-8">
-            <div class="card">
-                <div class="card-body">
-                    <h5>Sales Overview</h5>
-                    <canvas id="salesChart"></canvas>
+            <div class="card card-primary card-tabs">
+                <div class="card-header p-0 pt-1">
+                  <ul class="nav nav-tabs" id="custom-tabs-one-tab" role="tablist">
+                    <li class="nav-item">
+                      <a class="nav-link active" id="custom-tabs-one-home-sales" data-toggle="pill" href="#custom-tabs-one-sales" role="tab" aria-controls="custom-tabs-one-sales" aria-selected="true">Sales</a>
+                    </li>
+                   
+                  </ul>
                 </div>
-            </div>
-        </div>
-
-        <!-- ✅ Recent Orders -->
-        <div class="col-md-4">
-            <div class="row">
-                <div class="col-md-12">
-                    <div class="card bg-danger text-white">
-                        <div class="card-body">
-                            <form method="GET" class="mb-4">
-                                <div class="row">
-                                    <div class="col-md-4">
-                                        <label for="start_date">Start Date:</label>
-                                        <input type="date" id="start_date" name="start_date" value="{{ start_date }}" class="form-control">
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label for="end_date">End Date:</label>
-                                        <input type="date" id="end_date" name="end_date" value="{{ end_date }}" class="form-control">
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label>&nbsp;</label>
-                                        <button type="submit" class="btn btn-primary btn-block">Filter</button>
+                <div class="card-body">
+                  <div class="tab-content" id="custom-tabs-one-tabContent">
+                    <div class="tab-pane fade show active" id="custom-tabs-one-sales" role="tabpanel" aria-labelledby="custom-tabs-one-home-tab">
+                        <canvas id="salesChart"></canvas>
+                    </div>
+                    <div class="tab-pane fade" id="custom-tabs-one-forecast" role="tabpanel" aria-labelledby="custom-tabs-one-forecast-tab">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="card bg-danger text-white">
+                                    <div class="card-body">
+                                        <h5>Forecast Sales</h5>
+                                        <form method="GET" class="mb-4">
+                                            <div class="row">
+                                                <div class="col-md-4">
+                                                    <label for="start_date">Start Date:</label>
+                                                    <input type="date" id="start_date" name="start_date" value="{{ start_date }}" class="form-control">
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label for="end_date">End Date:</label>
+                                                    <input type="date" id="end_date" name="end_date" value="{{ end_date }}" class="form-control">
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label>&nbsp;</label>
+                                                    <button type="submit" class="btn btn-primary btn-block">Filter</button>
+                                                </div>
+                                            </div>
+                                        </form>
+                                
+                                        <h2>{{forecast}}(Accuracy {{mape}})</h2>
                                     </div>
                                 </div>
-                            </form>
-                            <h5>Forecast Sales</h5>
-                            <h2>{{forecast}}(Accuracy {{mape}})</h2>
+                            </div>
                         </div>
+
+
+                       <!--**Demand Forecast**-->
+                    
+
                     </div>
+                    
+                 
+                  </div>
                 </div>
-            </div>
-        <!-- ✅ Critical Products Section -->
-        <div class="row mt-4">
+                <!-- /.card -->
+              </div>
+        </div>
+        
+        <!-- ✅ Recent Orders -->
+        <div class="col-md-4">
+               <!-- ✅ Critical Products Section -->
+        <div class="row ">
             <div class="col-md-12">
                 <div class="card">
                     <div class="card-body">
@@ -117,6 +139,82 @@
                 </div>
             </div>
         </div>
+
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card bg-danger text-white">
+                        <div class="card-body">
+                            <h5>Forecast Sales</h5>
+                            <form method="GET" class="mb-4">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <label for="start_date">Start Date:</label>
+                                        <input type="date" id="start_date" name="start_date" value="{{ start_date }}" class="form-control">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="end_date">End Date:</label>
+                                        <input type="date" id="end_date" name="end_date" value="{{ end_date }}" class="form-control">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label>&nbsp;</label>
+                                        <button type="submit" class="btn btn-primary btn-block">Filter</button>
+                                    </div>
+                                </div>
+                            </form>
+                       
+                            <h2>{{forecast}}(Accuracy {{mape}})</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body">
+                            <h5>Demand Forecast</h5>
+                            <form method="GET" class="mb-4">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <label for="product_id">Select Product:</label>
+                                        <select id="product_id" name="product_id" class="form-control">
+                                            <option value="">All Products</option>
+                                            {% for product in products %}
+                                                <option value="{{ product.id }}" {% if product.id|stringformat:"s" == selected_product_id %}selected{% endif %}>
+                                                    {{ product.name }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="start_date">Start Date:</label>
+                                        <input type="date" id="start_date_prod" name="start_date_prod" value="{{ start_date_prod }}" class="form-control">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="end_date">End Date:</label>
+                                        <input type="date" id="end_date_prod" name="end_date_prod" value="{{ end_date_prod }}" class="form-control">
+                                    </div>
+                                 
+                                    <div class="col-md-12 mt-3">
+                                        <button type="submit" class="btn btn-primary btn-block">Filter</button>
+                                    </div>
+                                </div>
+                            </form>
+                 
+                            {% if product_forecasts %}
+                                {% for forecast in product_forecasts %}
+                                <h2>{{ forecast.forecast|join:", " }} (Accuracy {{ forecast.mape }}%)</h2>
+                                {% endfor %}
+                            {% else %}
+                                <h2>No forecast available</h2>
+                            {% endif %}
+      
+                        </div>
+                    </div>
+                </div>
+            </div>
+     
         <div class="row">
             <div class="col-md-12">
                 <div class="card">
@@ -125,7 +223,7 @@
                         <ul class="list-group">
                             {% for order in recent_orders %}
                                 <li class="list-group-item">
-                                    <strong><a href="orders/order/{{order.order_id}}/change/">{{ order.customer_name }}</a></strong> - ${{ order.total_amount }}
+                                    <strong><a href="orders/order/{{order.order_id}}/change/">{{ order.customer_name }}</a></strong> - {{ order.total_amount }}
                                     <span class="badge bg-info">{{ order.status }}</span>
                                 </li>
                             {% empty %}

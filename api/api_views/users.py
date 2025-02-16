@@ -2,8 +2,9 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
-from api.serializers.users import UserSerializer, UserRegistrationSerializer ,PasswordResetRequestSerializer, PasswordResetConfirmSerializer
+from api.serializers.users import UserSerializer, UserRegistrationSerializer, PasswordResetRequestSerializer, PasswordResetConfirmSerializer
 from django.contrib.auth import get_user_model
+from django.contrib.auth.hashers import make_password
 
 User = get_user_model()  # Get the correct user model
 
@@ -28,12 +29,22 @@ class UserInfoView(APIView):
         if user.user_type != 0:  # Only allow clients
             return Response({"error": "Permission denied. Only clients can update their profile."}, status=status.HTTP_403_FORBIDDEN)
 
-        serializer = UserSerializer(user, data=request.data, partial=True)
+        data = request.data.copy()  # Copy request data to modify it safely
+
+        # ✅ Allow password update
+        if "password" in data:
+            user.password = make_password(data["password"])
+
+        # ❌ Prevent user_type modification
+        data.pop("user_type", None)  # Remove user_type from request data
+
+        serializer = UserSerializer(user, data=data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 class UserRegistrationView(APIView):
     """

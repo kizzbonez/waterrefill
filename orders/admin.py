@@ -103,8 +103,9 @@ class OrderAdmin(admin.ModelAdmin):
 
     def get_total_price(self, obj):
         """Calculates the total price of all OrderDetails related to this order."""
+        store_settings = StoreSettings.objects.first()
         total_price = obj.order_details.aggregate(total=models.Sum('total_price'))['total'] or 0
-        return f"₱{total_price:,.2f}"  # Formats with Peso symbol and two decimal places
+        return f"{store_settings.currency_symbol}{total_price:,.2f}"  # Formats with Peso symbol and two decimal places
 
     get_total_price.short_description = "Total Price"  # Set the column name in Django Admin
     get_total_price.admin_order_field = 'order_details__status'  # Enable sorting

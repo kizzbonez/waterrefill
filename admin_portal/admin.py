@@ -25,12 +25,74 @@ from django.utils import timezone
 from datetime import timedelta
 from django.utils.translation import gettext_lazy as _
 from products.models import Product  # Import your Product model
+from settings.models import StoreSettings  # Import your Product model
 locale.setlocale(locale.LC_ALL, 'en_PH.UTF-8')
 class CustomAdmin(admin.AdminSite):
     """Custom Admin Dashboard with Jazzmin (Without admin_site)"""
 
     index_template = "admin/index.html"  #  Use custom index template
+    def calculate_product_forecast(self, product_id=None, start_date=None, end_date=None):
+        """
+        Calculate demand forecast for a selected product using Weighted Moving Average (WMA)
+        and compute MAPE against actual sales.
+        """
+        
+        forecast_results = []
+        
+        if product_id:
+            products = Product.objects.filter(id=product_id)
+        else:
+            products = Product.objects.all()
+        
+        for product in products:
+            # Fetch sales data for the product (aggregate quantity ordered per day)
+            sales_query = OrderDetails.objects.filter(product=product, order__status=1)
+            
+            if start_date and end_date:
+                sales_query = sales_query.filter(order__created_at__range=[start_date, end_date])
+            
+            sales_data = (
+                sales_query.annotate(day=TruncDay("order__created_at"))
+                .values("day")
+                .annotate(total_sold=Sum("quantity"))
+                .order_by("day")
+            )
 
+            # Convert to dictionary for fast lookup
+            sales_dict = {entry["day"].date(): float(entry["total_sold"]) for entry in sales_data}
+            
+            # Generate full date range from first sale to today
+            if sales_dict:
+                start_date = min(sales_dict.keys())
+            else:
+                continue  # Skip if no sales data for this product
+            
+            today = timezone.now().date()
+            all_dates = pd.date_range(start=start_date, end=today, freq="D")
+
+            # Fill in missing days with interpolated values (smoothing)
+            daily_sales = [sales_dict.get(date.date(), np.nan) for date in all_dates]
+            df = pd.DataFrame({'sales': daily_sales})
+            df['sales'] = df['sales'].interpolate(method='linear').fillna(method='bfill')
+            daily_sales = df['sales'].tolist()
+
+            # Calculate Weighted Moving Average (WMA)
+            forecast_sales = self.calculate_wma(daily_sales, growth_rate=0.02, forecast_days=6)  # 2% growth rate assumed
+            
+            # Compute MAPE (Mean Absolute Percentage Error)
+            actual_sales_last_6_days = daily_sales[-6:] if len(daily_sales) >= 6 else daily_sales
+            mape_value = self.calculate_mape(actual_sales_last_6_days, forecast_sales[:len(actual_sales_last_6_days)])
+
+            forecast_results.append({
+                "product": product.name,
+                "historical_sales": daily_sales,
+                "forecast": forecast_sales,
+                "mape": round(mape_value, 2)
+            })
+        
+        return forecast_results
+
+    
     
     def calculate_wma(self, sales_data, growth_rate=0.0, forecast_days=6):
         """
@@ -107,6 +169,10 @@ class CustomAdmin(admin.AdminSite):
         # Get start and end date from request
         start_date_str = request.GET.get("start_date")
         end_date_str = request.GET.get("end_date")
+
+        start_date_prod = request.GET.get("start_date_prod")
+        end_date_prod = request.GET.get("end_date_prod")
+        product_id = request.GET.get("product_id")
 
         # Define the expected date format
         date_format = "%Y-%m-%d"
@@ -209,10 +275,9 @@ class CustomAdmin(admin.AdminSite):
             }
             for product in critical_products
         ]
-
-        # Pass to the template
+        product_forecasts = self.calculate_product_forecast(product_id, start_date_prod, end_date_prod)
         extra_context["critical_products"] = formatted_critical_products
-
+        extra_context["product_forecasts"] = product_forecasts
         extra_context["total_revenue"] = locale.currency(total_revenue, grouping=True)
         extra_context["total_users"] = CustomUser.objects.count()
         extra_context["total_orders"] = Order.objects.count()
@@ -223,16 +288,21 @@ class CustomAdmin(admin.AdminSite):
         extra_context["mape"] =  f"{mape_value:.2f}%"  # Example MAPE value
         extra_context["start_date"] =  start_date_str
         extra_context["end_date"] =  end_date_str
+        extra_context["start_date_prod"] = start_date_prod
+        extra_context["end_date_prod"] = end_date_prod
+        extra_context["selected_product_id"] = product_id
+        extra_context["products"] = Product.objects.all()
             #  Fetch order data with user and total amount
         recent_orders = Order.objects.select_related('customer').prefetch_related('order_details').order_by('-created_at')[:5]
 
         formatted_orders = []
+        store_settings = StoreSettings.objects.first()
         for order in recent_orders:
             total_amount = order.get_total_amount()  #  Calculate total amount
             formatted_orders.append({
                 "order_id": order.id,
                 "customer_name": order.customer.get_full_name() or order.customer.username,  #  Display full name or username
-                "total_amount": f"₱{total_amount:,.2f}",  #  Format as PHP currency
+                "total_amount": f"{store_settings.currency_symbol}{total_amount:,.2f}",  #  Format as PHP currency
                 "status": order.get_status_display(),  #  Convert status integer to text
             })
 
@@ -262,7 +332,7 @@ class CustomUserForm(forms.ModelForm):
         """Overrides the save method to hash and store a new password if provided."""
         user = super().save(commit=False)
         new_password = self.cleaned_data.get("new_password")
-
+       
         if new_password:  # If admin entered a new password, hash it before saving
             user.password = make_password(new_password)
 
@@ -273,7 +343,7 @@ class CustomUserForm(forms.ModelForm):
     def google_map(self):
         store_latitude = StoreSettings.objects.first().store_latitude
         store_longitude = StoreSettings.objects.first().store_longitude
-        print(  store_latitude  )
+        settings = StoreSettings.objects.first()
         return mark_safe(f"""
             <script>
                 function initMap() {{
@@ -340,7 +410,7 @@ class CustomUserForm(forms.ModelForm):
                 }}
             </script>
 
-            <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAy1hLcI4XMz-UV-JgZJswU5nXcQHcL6mk&callback=initMap" async defer></script>
+            <script src="https://maps.googleapis.com/maps/api/js?key={settings.gmap_api_key}&callback=initMap" async defer></script>
 
             <!-- ✅ Display Distance -->
             <div id="distance_km" style="margin-top: 10px; font-weight: bold;"></div>
