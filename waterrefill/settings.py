@@ -29,6 +29,9 @@ DEBUG = True
 ALLOWED_HOSTS = []
 #ALLOWED_HOSTS = ['157.173.221.215','refillpro.store']
 
+ALLOWED_HOSTS = ['157.173.221.215','refillpro.store','127.0.0.1']
+CSRF_TRUSTED_ORIGINS = ["https://refillpro.store", "https://www.refillpro.store"]
+
 
 # Application definition
 
@@ -239,8 +242,14 @@ REST_FRAMEWORK = {
 
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'sandbox.smtp.mailtrap.io'  # Use your email provider's SMTP server
-EMAIL_PORT = 587
+# EMAIL_HOST = 'sandbox.smtp.mailtrap.io'  # Use your email provider's SMTP server
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True
+# EMAIL_HOST_USER = '9021c0f8aac191'  # Replace with your email
+# EMAIL_HOST_PASSWORD = '4cecdcdbd24b41'  # Use an app password for security
+# Looking to send emails in production? Check out our Email API/SMTP product!
+EMAIL_HOST = 'sandbox.smtp.mailtrap.io'
+EMAIL_HOST_USER = 'abb9ff4bbe3b62'
+EMAIL_HOST_PASSWORD = 'dbe9444e9687d9'
+EMAIL_PORT = '2525'
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = '9021c0f8aac191'  # Replace with your email
-EMAIL_HOST_PASSWORD = '4cecdcdbd24b41'  # Use an app password for security
