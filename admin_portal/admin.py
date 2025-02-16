@@ -505,7 +505,7 @@ class CustomUserAdmin(UserAdmin):
 
     # Add new fields to "Personal Info"
     fieldsets = (
-        ("Account Info", {"fields": ("user_type","username", "new_password")}),
+        ("Account Info", {"fields": ("user_type","username",'new_password')}),
         ("Personal info", {"fields": ("first_name", "last_name", "email", "phone_number", "address")}),
         ("Permissions", {"fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")}),
         ("Important dates", {"fields": ("last_login", "date_joined")}),
@@ -515,7 +515,7 @@ class CustomUserAdmin(UserAdmin):
 
     # Ensure new fields appear in the "Add User" form
     add_fieldsets = (
-        ("Account Info", {"fields": ("user_type","username" ,"new_password")}),
+        ("Account Info", {"fields": ("user_type","username" )}),
         ("Personal info", {"fields": ("first_name", "last_name", "email", "phone_number", "address")}),
         ("Permissions", {"fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")}),
         ("Map", {"fields": ("lat", "long")}),

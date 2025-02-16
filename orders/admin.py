@@ -9,6 +9,7 @@ from django.http import HttpResponse
 import openpyxl
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+from settings.models import StoreSettings
 class OrderDetailsForm(forms.ModelForm):
     """Ensures products appear in the dropdown."""
     class Meta:
