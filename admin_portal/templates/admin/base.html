@@ -1,0 +1,25 @@
+
+{% extends "admin/base_site.html" %}
+
+{% block extrahead %}
+{{ block.super }}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // Get list of inaccessible apps from Django context
+        const inaccessibleApps = {{ inaccessible_apps|safe }};
+        console.log("Inaccessible Apps:", inaccessibleApps);
+        // Loop through menu items and hide those belonging to inaccessible apps
+        document.querySelectorAll(".nav-sidebar a").forEach(function (item) {
+            const href = item.getAttribute("href");
+    
+            if (href) {
+                inaccessibleApps.forEach(function (app) {
+                    if (href.includes(`/admin/${app}/`)) {
+                        item.closest("li").style.display = "none"; // Hide the menu item
+                    }
+                });
+            }
+        });
+    });
+</script>
+{% endblock %}

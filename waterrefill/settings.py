@@ -12,7 +12,7 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 import os
 from pathlib import Path
 from datetime import timedelta
-
+from admin_portal.context_processors import inaccessible_apps_context
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -51,7 +51,8 @@ INSTALLED_APPS = [
     'products',
     'orders',
     'payments',
-    'settings'
+    'settings',
+    'django_celery_beat'
 
 ]
 
@@ -78,6 +79,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'admin_portal.context_processors.inaccessible_apps_context',  # 👈 Add this
             ],
         },
     },
@@ -195,40 +197,14 @@ JAZZMIN_SETTINGS = {
     },
 
     # 🔹 Group Users & Products Together
-    "custom_links": {
-        "admin_portal": [  # Keep everything under "Users"
-            {
-                "name": "Manage Users",
-                "url": "admin:admin_portal_customuser_changelist",
-                "icon": "fas fa-user",
-            },
-            {
-                "name": "Manage User Group",
-                "url": "/admin/auth/group/",
-                "icon": "fas fas fa-users",
-            },
-            
-            {
-                "name": "Manage Products",
-                "url": "/admin/products/product/",
-                "icon": "fas fa-box-open",
-            },
-            {
-                "name": "Orders",
-                "url": "/admin/orders/order/",
-                "icon": "fas fa-shopping-cart",
-            },
-             {
-                "name": "Payments",
-                "url": "/admin/payments/payment/",
-                "icon": "fas fa-money-bill-wave",
-            },
-             {
-                "name": "Settings",
-                "url": "/admin/settings/storesettings/1/change/",
-                "icon": "fas fa-cogs",
-            },
-        ],
+    "custom_links":{"admin_portal": [
+            {"name": "Manage Users", "url": "admin:admin_portal_customuser_changelist", "icon": "fas fa-user", "app": "admin_portal"},
+            {"name": "Manage User Group", "url": "/admin/auth/group/", "icon": "fas fas fa-users", "app": "auth"},
+            {"name": "Manage Products", "url": "/admin/products/product/", "icon": "fas fa-box-open", "app": "products"},
+            {"name": "Orders", "url": "/admin/orders/order/", "icon": "fas fa-shopping-cart", "app": "orders"},
+            {"name": "Payments", "url": "/admin/payments/payment/", "icon": "fas fa-money-bill-wave", "app": "payments"},
+            {"name": "Settings", "url": "/admin/settings/storesettings/1/change/", "icon": "fas fa-cogs", "app": "settings"},
+        ]
     },
 }
 
@@ -253,3 +229,10 @@ EMAIL_HOST_USER = 'abb9ff4bbe3b62'
 EMAIL_HOST_PASSWORD = 'dbe9444e9687d9'
 EMAIL_PORT = '2525'
 EMAIL_USE_TLS = True
+
+
+# settings.py
+CELERY_BROKER_URL = 'redis:// 172.19.208.223:6379/0'
+#CELERY_BROKER_URL = 'redis:// 172.19.208.223:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'

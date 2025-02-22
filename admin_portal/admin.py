@@ -189,6 +189,7 @@ class CustomAdmin(admin.AdminSite):
         if extra_context is None:
             extra_context = {}
         
+       # extra_context.update(jazzmin_custom_links(request))
 
         # Get start and end date from request
         start_date_str = request.GET.get("start_date")
@@ -329,7 +330,7 @@ class CustomAdmin(admin.AdminSite):
 
 #  Attach this to Django's default admin
 admin.site.__class__ = CustomAdmin
-      
+ 
 class CustomUserForm(forms.ModelForm):
     """Custom form for the User model, allowing the admin to change the password."""
     
