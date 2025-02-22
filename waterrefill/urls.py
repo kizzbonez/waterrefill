@@ -6,7 +6,8 @@ from django.contrib.auth import views as auth_views
 urlpatterns = [
     path('api/v1/', include('api.urls')),  # Include API URLs
     path('admin/', admin.site.urls),
-    path("accounts/", include("django.contrib.auth.urls")),  # ✅ Add this line
+    path('admin-api/', include('admin_portal.urls')),  # ✅ Register the Admin AP
+    path("accounts/", include("django.contrib.auth.urls")),  # 
 
 ]
 

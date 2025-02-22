@@ -1,11 +1,9 @@
 import openpyxl
 import pandas as pd
 import numpy as np
-from django.utils import timezone
 from django.http import HttpResponse
 from django.contrib import admin
 from django.db import models  # Import Django's models module
-
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.hashers import make_password
 from django import forms
@@ -27,10 +25,35 @@ from django.utils.translation import gettext_lazy as _
 from products.models import Product  # Import your Product model
 from settings.models import StoreSettings  # Import your Product model
 locale.setlocale(locale.LC_ALL, 'en_PH.UTF-8')
+from django.http import JsonResponse
+
 class CustomAdmin(admin.AdminSite):
     """Custom Admin Dashboard with Jazzmin (Without admin_site)"""
 
     index_template = "admin/index.html"  #  Use custom index template
+
+
+    def forecast_product(self, request):
+        """Custom view to display product forecast data with error handling."""
+        
+        # Check if the request method is allowed
+        if request.method not in ["GET", "POST"]:
+            return HttpResponseBadRequest("Invalid request method")
+
+        try:
+            forecast_data = []
+
+            if not forecast_data:
+                return HttpResponseNotFound(JsonResponse({"error": "Forecast data not found"}))
+
+            return JsonResponse({
+                "title": "Product Forecast",
+                "forecasts": forecast_data,
+            })
+
+        except Exception as e:
+            return JsonResponse({"error": "An error occurred", "details": str(e)}, status=500)
+
     def calculate_product_forecast(self, product_id=None, start_date=None, end_date=None):
         """
         Calculate demand forecast for a selected product using Weighted Moving Average (WMA)
@@ -77,7 +100,7 @@ class CustomAdmin(admin.AdminSite):
             daily_sales = df['sales'].tolist()
 
             # Calculate Weighted Moving Average (WMA)
-            forecast_sales = self.calculate_wma(daily_sales, growth_rate=0.02, forecast_days=6)  # 2% growth rate assumed
+            forecast_sales = self.calculate_wma(daily_sales, growth_rate=0.00, forecast_days=6)  # 2% growth rate assumed
             
             # Compute MAPE (Mean Absolute Percentage Error)
             actual_sales_last_6_days = daily_sales[-6:] if len(daily_sales) >= 6 else daily_sales
@@ -94,7 +117,7 @@ class CustomAdmin(admin.AdminSite):
 
     
     
-    def calculate_wma(self, sales_data, growth_rate=0.0, forecast_days=6):
+    def calculate_wma(self, sales_data, growth_rate=0.0, forecast_days=0):
         """
         Calculate the Weighted Moving Average (WMA) for the given sales data
         and forecast future sales with an optional growth rate.
@@ -103,8 +126,9 @@ class CustomAdmin(admin.AdminSite):
         :param growth_rate: Daily growth rate for forecasting future sales (default is 0% growth)
         :param forecast_days: Number of days to forecast (default is 6)
         :return: List of forecasted sales for future dates
-        """
-
+        """ 
+        if not sales_data or forecast_days == 0:
+            return []
         # Convert sales data to a DataFrame for easier manipulation
         df = pd.DataFrame({'sales': sales_data})
 
@@ -137,7 +161,7 @@ class CustomAdmin(admin.AdminSite):
         for i in range(forecast_days):  # Forecasting `forecast_days` days
             forecasted_value = wma * (1 + growth_rate)**i  # Adjust for growth rate
             forecast_sales.append(forecasted_value)
-
+    
         return forecast_sales
 
 
@@ -179,20 +203,11 @@ class CustomAdmin(admin.AdminSite):
 
         try:
             # Convert string dates to datetime (if provided)
-            start_date_fi = datetime.strptime(start_date_str, date_format) if start_date_str else None
-            end_date_fi = datetime.strptime(end_date_str, date_format) if end_date_str else None
+            start_date_fi = datetime.strptime(start_date_str, date_format) if start_date_str else timezone.now()
+            end_date_fi = datetime.strptime(end_date_str, date_format) if end_date_str else timezone.now()
         except ValueError:
             # Handle invalid date formats
-            start_date_fi = None
-            end_date_fi = None
-
-        # ✅ If no valid start date, use the first entry from the database
-        if start_date_fi is None:
-            first_payment = Payment.objects.filter(status=1).aggregate(earliest=Min("created_at"))["earliest"]
-            start_date_fi = first_payment if first_payment else timezone.now() - timedelta(days=30)
-
-        # ✅ If no valid end date, use today's date
-        if end_date_fi is None:
+            start_date_fi = timezone.now()
             end_date_fi = timezone.now()
 
         # ✅ Ensure start_date_fi is before end_date_fi
@@ -201,6 +216,7 @@ class CustomAdmin(admin.AdminSite):
 
         # Calculate the number of days in the range
         date_diff = end_date_fi  - start_date_fi 
+
         num_days = date_diff.days  # This will give you the number of days between the two dates
         #  Fetch analytics data
 

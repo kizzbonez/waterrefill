@@ -5,8 +5,13 @@ from django.dispatch import receiver
 class Order(models.Model):
     ORDER_STATUS_CHOICES = (
         (0, 'Pending'),
-        (1, 'Delivered'),
-        (2, 'Cancelled'),
+        (1, 'Preparing'),
+        (2, 'On Hold'),
+        (3, 'On the way'),
+        (4, 'Delivered'),
+        (5, 'Cancelled By Client'),
+        (6, 'Cancelled By Rider'),
+        (7, 'Cancelled by Admin'),
     )
     assigned_to = models.ForeignKey(
         'admin_portal.CustomUser', on_delete=models.CASCADE, null=True, blank=True, related_name='assigned_orders'
@@ -26,7 +31,7 @@ class Order(models.Model):
         """✅ Calculate total amount based on order details"""
         return sum(item.total_price  for item in self.order_details.all())
     def __str__(self):
-        return f"Order #{self.id} - Customer: {self.customer.username if self.customer else 'N/A'}"
+        return f"Order #{self.id} - {self.customer.last_name if self.customer else 'N/A'} , {self.customer.first_name if self.customer else ''}".strip()
 
 class OrderDetails(models.Model):
     class Meta:

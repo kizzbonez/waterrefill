@@ -6,9 +6,10 @@ import openpyxl
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from settings.models import StoreSettings
+from common import common
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
-    list_display = ('order_id', 'ref_code', 'status', 'payment_method', 'formatted_amount', 'proof', 'created_at')
+    list_display = ('order_id', 'ref_code', 'status', 'payment_method', 'get_formatted_amount', 'proof', 'created_at')
     search_fields = ('ref_code', 'amount')
     list_filter = (
         ('created_at', admin.DateFieldListFilter),  # Adds a basic date filter
@@ -16,18 +17,11 @@ class PaymentAdmin(admin.ModelAdmin):
         'amount'
     ) 
 
-    ordering = ('-created_at',)  
+    ordering = ('-created_at','-order_id','status','amount')  
     actions = ["export_to_excel"]  #  Add the export action
-    def formatted_amount(self, obj):
-        store_settings = StoreSettings.objects.first()
-        """Format amount as Philippine Pesos with thousand separators."""
-        try:
-            total_price = float(obj.amount) or 0  # Ensure the value is a number
-            return f"{store_settings.currency_symbol}{total_price:,.2f}"  # Formats with Peso symbol and two decimal places
-        except (ValueError, TypeError):
-            return "Invalid Amount"
-
-    formatted_amount.short_description = "Amount ({store_settings.currency_symbol})"  # Renames column in admin panel
+    @admin.display(ordering='amount', description="Amount")  # Enables sorting and renames column
+    def get_formatted_amount(self, obj):
+        return common.formatted_amount(obj.amount)  # Use the function from common.py
 
     def export_to_excel(self, request, queryset):
         """Exports selected payments to an Excel file."""

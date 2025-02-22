@@ -6,8 +6,10 @@ from orders.models import Order, OrderDetails
 from api.serializers.orders import OrderSerializer, OrderDetailsSerializer
 from products.models import Product  # Ensure Product model exists
 from django.contrib.auth import get_user_model
+from django.db import transaction
 User = get_user_model()  # Get the correct user model
 class OrderListCreateView(APIView):
+    
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -59,27 +61,16 @@ class OrderListCreateView(APIView):
 
 
 
+
+
 class OrderDetailView(APIView):
     """
     View for retrieving, updating, and deleting an order using POST.
     """
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, pk):
-        """ Retrieve an order if the user is the customer or assigned rider. """
-        try:
-            order = Order.objects.get(pk=pk)
-            if order.customer != request.user and order.assigned_to != request.user:
-                return Response({"error": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
-
-            serializer = OrderSerializer(order)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-
-        except Order.DoesNotExist:
-            return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)
-
     def post(self, request, pk):
-        """ Handle updating or deleting an order using POST. """
+        """ Handle updating an order and reducing stock when delivered. """
         try:
             order = Order.objects.get(pk=pk)
 
@@ -94,35 +85,50 @@ class OrderDetailView(APIView):
                 order_data = request.data
                 order_details_data = order_data.get('order_details', [])  # Extract order details
                 serializer = OrderSerializer(order, data=order_data, partial=True)
+                
                 if serializer.is_valid():
-                    serializer.save()
+                    with transaction.atomic():
+                        updated_order = serializer.save()
 
-                    # Handle order details update
-                    for detail in order_details_data:
-                        detail_id = detail.get("id", None)
-                        product_id = detail.get("product")
-                        quantity = detail.get("quantity")
+                        # Handle order details update
+                        for detail in order_details_data:
+                            detail_id = detail.get("id", None)
+                            product_id = detail.get("product")
+                            quantity = detail.get("quantity")
 
-                        if detail_id:
-                            # Update existing order detail
-                            try:
-                                order_detail = OrderDetails.objects.get(id=detail_id, order=order)
-                                order_detail.quantity = quantity
-                                order_detail.product_id = product_id
-                                order_detail.save()
-                            except OrderDetails.DoesNotExist:
-                                return Response({"error": f"Order detail with ID {detail_id} not found."},
-                                                status=status.HTTP_404_NOT_FOUND)
-                        else:
-                            # Ensure product exists before creating a new order detail
-                            try:
-                                product = Product.objects.get(id=product_id)
-                            except Product.DoesNotExist:
-                                return Response({"error": f"Product with ID {product_id} not found."},
-                                                status=status.HTTP_400_BAD_REQUEST)
+                            if detail_id:
+                                # Update existing order detail
+                                try:
+                                    order_detail = OrderDetails.objects.get(id=detail_id, order=order)
+                                    order_detail.quantity = quantity
+                                    order_detail.product_id = product_id
+                                    order_detail.save()
+                                except OrderDetails.DoesNotExist:
+                                    return Response({"error": f"Order detail with ID {detail_id} not found."},
+                                                    status=status.HTTP_404_NOT_FOUND)
+                            else:
+                                # Ensure product exists before creating a new order detail
+                                try:
+                                    product = Product.objects.get(id=product_id)
+                                except Product.DoesNotExist:
+                                    return Response({"error": f"Product with ID {product_id} not found."},
+                                                    status=status.HTTP_400_BAD_REQUEST)
 
-                            # Create new order detail
-                            OrderDetails.objects.create(order=order, product=product, quantity=quantity)
+                                # Create new order detail
+                                OrderDetails.objects.create(order=order, product=product, quantity=quantity)
+
+                        # ✅ Reduce product quantity if status is "Delivered" (status=4)
+                        if updated_order.status == 4:
+                            for order_detail in OrderDetails.objects.filter(order=updated_order):
+                                product = order_detail.product
+                                if product.stock >= order_detail.quantity:
+                                    product.stock -= order_detail.quantity
+                                    product.save()
+                                else:
+                                    return Response(
+                                        {"error": f"Not enough stock for product {product.name}"},
+                                        status=status.HTTP_400_BAD_REQUEST
+                                    )
 
                     return Response({"message": "Order updated successfully", "order": serializer.data}, status=status.HTTP_200_OK)
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

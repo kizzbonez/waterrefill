@@ -62,33 +62,7 @@
                         <canvas id="salesChart"></canvas>
                     </div>
                     <div class="tab-pane fade" id="custom-tabs-one-forecast" role="tabpanel" aria-labelledby="custom-tabs-one-forecast-tab">
-                        <div class="row">
-                            <div class="col-md-12">
-                                <div class="card bg-danger text-white">
-                                    <div class="card-body">
-                                        <h5>Forecast Sales</h5>
-                                        <form method="GET" class="mb-4">
-                                            <div class="row">
-                                                <div class="col-md-4">
-                                                    <label for="start_date">Start Date:</label>
-                                                    <input type="date" id="start_date" name="start_date" value="{{ start_date }}" class="form-control">
-                                                </div>
-                                                <div class="col-md-4">
-                                                    <label for="end_date">End Date:</label>
-                                                    <input type="date" id="end_date" name="end_date" value="{{ end_date }}" class="form-control">
-                                                </div>
-                                                <div class="col-md-4">
-                                                    <label>&nbsp;</label>
-                                                    <button type="submit" class="btn btn-primary btn-block">Filter</button>
-                                                </div>
-                                            </div>
-                                        </form>
-                                
-                                        <h2>{{forecast}}(Accuracy {{mape}})</h2>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                      
 
 
                        <!--**Demand Forecast**-->
@@ -145,24 +119,24 @@
                     <div class="card bg-danger text-white">
                         <div class="card-body">
                             <h5>Forecast Sales</h5>
-                            <form method="GET" class="mb-4">
+                            <form method="GET" class="mb-4" name="forecast_sales"  id="forecast_sales">
                                 <div class="row">
                                     <div class="col-md-4">
                                         <label for="start_date">Start Date:</label>
-                                        <input type="date" id="start_date" name="start_date" value="{{ start_date }}" class="form-control">
+                                        <input type="date" id="start_date" name="start_date" value="" class="form-control">
                                     </div>
                                     <div class="col-md-4">
                                         <label for="end_date">End Date:</label>
-                                        <input type="date" id="end_date" name="end_date" value="{{ end_date }}" class="form-control">
+                                        <input type="date" id="end_date" name="end_date" value="" class="form-control">
                                     </div>
                                     <div class="col-md-4">
                                         <label>&nbsp;</label>
-                                        <button type="submit" class="btn btn-primary btn-block">Filter</button>
+                                        <button type="button" class="btn btn-primary btn-block">Filter</button>
                                     </div>
                                 </div>
                             </form>
                        
-                            <h2>{{forecast}}(Accuracy {{mape}})</h2>
+                            <h2>Select dates to forecast</h2>
                         </div>
                     </div>
                 </div>
@@ -174,7 +148,7 @@
                     <div class="card bg-warning text-white">
                         <div class="card-body">
                             <h5>Demand Forecast</h5>
-                            <form method="GET" class="mb-4">
+                            <form method="GET" class="mb-4" name="forecast_demand"  id="forecast_demand">
                                 <div class="row">
                                     <div class="col-md-4">
                                         <label for="product_id">Select Product:</label>
@@ -189,26 +163,19 @@
                                     </div>
                                     <div class="col-md-4">
                                         <label for="start_date">Start Date:</label>
-                                        <input type="date" id="start_date_prod" name="start_date_prod" value="{{ start_date_prod }}" class="form-control">
+                                        <input type="date" id="start_date_prod" name="start_date_prod" value="" class="form-control">
                                     </div>
                                     <div class="col-md-4">
                                         <label for="end_date">End Date:</label>
-                                        <input type="date" id="end_date_prod" name="end_date_prod" value="{{ end_date_prod }}" class="form-control">
+                                        <input type="date" id="end_date_prod" name="end_date_prod" value="" class="form-control">
                                     </div>
                                  
                                     <div class="col-md-12 mt-3">
-                                        <button type="submit" class="btn btn-primary btn-block">Filter</button>
+                                        <button type="button" class="btn btn-primary btn-block">Filter</button>
                                     </div>
                                 </div>
                             </form>
-                 
-                            {% if product_forecasts %}
-                                {% for forecast in product_forecasts %}
-                                <h2>{{ forecast.forecast|join:", " }} (Accuracy {{ forecast.mape }}%)</h2>
-                                {% endfor %}
-                            {% else %}
-                                <h2>No forecast available</h2>
-                            {% endif %}
+                            <h2>Select dates to forecast</h2>
       
                         </div>
                     </div>
@@ -242,6 +209,8 @@
 
 <!-- ✅ Chart.js for Graphs -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+<script src="{% static 'js/custom.js' %}"></script>
 <script>
     document.addEventListener("DOMContentLoaded", function() {
         var ctx = document.getElementById('salesChart').getContext('2d');
@@ -258,5 +227,32 @@
             }
         });
     });
+    async function fetchProductSales(productId) {
+        try {
+            const response = await fetch(`/admin-api/forecast-product?start_date=2025-02-22&end_date=2025-02-23&product_id=1&type=sales`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            const data = await response.json();
+            
+            // Display in console
+            console.log("Sales Data:", data);
+    
+            // Display in HTML
+            let output = "<h2>Product Sales Data</h2><ul>";
+            data.product_forecasts.forEach(sale => {
+                output += `<li>Date: ${sale.sale_date} - Total Sold: ${sale.total_sold}</li>`;
+            });
+            output += "</ul>";
+            
+            //document.getElementById("sales-output").innerHTML = output;
+        } catch (error) {
+            console.error("Error fetching sales data:", error);
+        }
+    }
+    
+    // Call the function with Product ID = 2
+    fetchProductSales(2);
+    
 </script>
 {% endblock %}

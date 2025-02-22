@@ -3,19 +3,23 @@ from .models import Product
 from django.http import HttpResponse
 import openpyxl
 from django.utils.translation import gettext_lazy as _
+from common import common
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('name', 'price', 'stock', 'created_at','status')  # Columns shown in admin list view
+    list_display = ('name', 'get_formatted_amount', 'stock', 'created_at', 'status')  # Columns shown in admin list view
     search_fields = ('name',)  # Enables search by product name
-    list_filter = ( ('created_at', admin.DateFieldListFilter), 'price','status')  # Adds filters for admin
-    ordering = ('-created_at',)  # Orders products by newest first
+    list_filter = ( ('created_at', admin.DateFieldListFilter), 'status')  # Removed `get_formatted_amount`
+    ordering = ('-created_at', 'name', 'price', 'stock', 'status')  # Use `price` instead of `get_formatted_amount`
     actions = ["export_to_excel"]  # Add the export action
+
 
     def has_delete_permission(self, request, obj=None):
         """Disables delete option for all products"""
         return False
-
+    @admin.display(ordering='price', description="price")  # Enables sorting and renames column
+    def get_formatted_amount(self, obj):
+        return common.formatted_amount(obj.price)  # Use the function from common.py
     # Allow Admins to export user data
     def export_to_excel(self, request, queryset):
         """Exports selected products to an Excel file."""

@@ -12,7 +12,7 @@ class UserSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'username', 'email', 'first_name', 'last_name', 'groups',
             'user_permissions', 'is_staff', 'is_active', 'is_superuser',
-            'last_login', 'date_joined', 'phone_number', 'address', 'long', 'lat', 'user_type'
+            'last_login', 'date_joined', 'phone_number', 'address', 'long', 'lat', 'user_type','firebase_tokens'
         ]
 
     def update(self, instance, validated_data):
