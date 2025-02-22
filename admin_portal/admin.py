@@ -530,11 +530,11 @@ class CustomUserAdmin(UserAdmin):
     readonly_fields = ["google_map"]
 
     # Ensure new fields appear in the "Add User" form
-    add_fieldsets = (
-        ("Account Info", {"fields": ("user_type","username" )}),
-        ("Personal info", {"fields": ("first_name", "last_name", "email", "phone_number", "address")}),
-        ("Permissions", {"fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")}),
-        ("Map", {"fields": ("lat", "long")}),
-    )
+    # add_fieldsets = (
+    #     ("Account Info", {"fields": ("user_type","username" )}),
+    #     ("Personal info", {"fields": ("first_name", "last_name", "email", "phone_number", "address")}),
+    #     ("Permissions", {"fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")}),
+    #     ("Map", {"fields": ("lat", "long")}),
+    # )
 
 admin.site.register(CustomUser, CustomUserAdmin)  # Ensure it's registered
