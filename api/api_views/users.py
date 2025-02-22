@@ -22,7 +22,7 @@ class UserInfoView(APIView):
 
     def post(self, request):
         user = request.user
-
+        
         if not user or user.is_anonymous:
             return Response({"error": "Authentication failed, user not found"}, status=status.HTTP_401_UNAUTHORIZED)
 
@@ -36,8 +36,9 @@ class UserInfoView(APIView):
             user.password = make_password(data["password"])
 
         # ❌ Prevent user_type modification
-        data.pop("user_type", None)  # Remove user_type from request data
-
+        disallowed_fields = ["user_type", "username", "groups", "user","user_permissions","is_active","is_staff","is_superuser","last_login","date_joined"]
+        for field in disallowed_fields:
+            data.pop(field, None) # Remove the field if it exists
         serializer = UserSerializer(user, data=data, partial=True)
         if serializer.is_valid():
             serializer.save()
@@ -80,9 +81,12 @@ class RiderEditClientView(APIView):
             client = User.objects.get(id=user_id, user_type=0)  # Only update clients
         except User.DoesNotExist:
             return Response({"error": "Client not found"}, status=status.HTTP_404_NOT_FOUND)
-
+        data = request.data.copy()  # Copy request data to modify it safely
+        disallowed_fields = ["user_type","password", "username", "groups", "user","user_permissions","is_active","is_staff","is_superuser","last_login","date_joined","firebase_tokens"]
+        for field in disallowed_fields:
+            data.pop(field, None) # Remove the field if it exists
         # 🔹 Serialize and update the client profile
-        serializer = UserSerializer(client, data=request.data, partial=True)
+        serializer = UserSerializer(client, data=data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
