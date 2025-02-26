@@ -448,10 +448,16 @@ class CustomUserAdmin(UserAdmin):
     model = CustomUser
     form = CustomUserForm  # Use the updated form
     
-    list_display = ("username", "email", "user_type", "is_active", "is_staff","date_joined")
+    list_display = ("username","fullname", "email", "user_type", "is_active", "is_staff","date_joined")
     list_filter = ("user_type", "is_active", "is_staff", "date_joined")
+    ordering = ('date_joined', 'username', 'email', 'is_active','is_staff',"first_name", "last_name") 
     actions = ["export_to_excel"]  #  Add the export action
 
+    def fullname(self, obj):
+        return f"{obj.last_name}, {obj.last_name}"
+
+    fullname.short_description = "Full Name"  # Custom column title
+    fullname.admin_order_field = "first_name"  # Enables sorting
     # Allow Admins to export user data
     def export_to_excel(self, request, queryset):
         """Exports selected users to an Excel file."""

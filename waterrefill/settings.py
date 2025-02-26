@@ -10,11 +10,21 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.0/ref/settings/
 """
 import os
+import firebase_admin
+from firebase_admin import credentials
 from pathlib import Path
 from datetime import timedelta
 from admin_portal.context_processors import inaccessible_apps_context
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+FIREBASE_CREDENTIALS =  os.path.join(BASE_DIR,'refillpro-65d6b-firebase-adminsdk-fbsvc-caf4ee8bda.json')
+
+# Initialize Firebase Admin SDK
+if not firebase_admin._apps:
+    cred = credentials.Certificate(FIREBASE_CREDENTIALS)
+    firebase_admin.initialize_app(cred)
 
 
 # Quick-start development settings - unsuitable for production
