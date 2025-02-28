@@ -13,6 +13,8 @@ from django.utils.safestring import mark_safe
 from django.views.decorators.csrf import csrf_exempt
 from admin_portal.models import CustomUser
 from django.contrib import messages
+import subprocess
+import os
 @admin.register(StoreSettings)
 class StoreSettingsAdmin(admin.ModelAdmin):
     list_display = ("store_name", "timezone", "favicon_preview")
@@ -67,10 +69,13 @@ class StoreSettingsAdmin(admin.ModelAdmin):
                     "-d", db_settings["NAME"], "-f", backup_file
                 ], check=True)
             elif db_settings["ENGINE"] == "django.db.backends.mysql":
+                # Set MYSQL_PWD environment variable for security
+                env = os.environ.copy()
+                env["MYSQL_PWD"] = db_settings["PASSWORD"]
+
                 subprocess.run([
-                    "mysqldump", "-u", db_settings["USER"], "-p" + db_settings["PASSWORD"], "-h", db_settings["HOST"], 
-                    db_settings["NAME"], "--result-file=" + backup_file
-                ], check=True)
+                    "mysqldump", "-u", db_settings["USER"], "-h", db_settings["HOST"], db_settings["NAME"], "--result-file=" + backup_file
+                ], check=True, env=env)
             elif db_settings["ENGINE"] == "django.db.backends.sqlite3":
                 subprocess.run(["cp", db_settings["NAME"], backup_file], check=True)
             else:
