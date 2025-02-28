@@ -26,7 +26,21 @@ from products.models import Product  # Import your Product model
 from settings.models import StoreSettings  # Import your Product model
 locale.setlocale(locale.LC_ALL, 'en_PH.UTF-8')
 from django.http import JsonResponse
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.models import User
+class CustomUserCreationForm(UserCreationForm):
+    email = forms.EmailField(required=True)
 
+    class Meta:
+        model = User
+        fields = ["username", "email", "password1", "password2"]
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.email = self.cleaned_data["email"]
+        if commit:
+            user.save()
+        return user
 class CustomAdmin(admin.AdminSite):
     """Custom Admin Dashboard with Jazzmin (Without admin_site)"""
 
@@ -454,7 +468,7 @@ class CustomUserAdmin(UserAdmin):
     actions = ["export_to_excel"]  #  Add the export action
 
     def fullname(self, obj):
-        return f"{obj.last_name}, {obj.last_name}"
+        return f"{obj.last_name}, {obj.first_name}"
 
     fullname.short_description = "Full Name"  # Custom column title
     fullname.admin_order_field = "first_name"  # Enables sorting
@@ -535,7 +549,10 @@ class CustomUserAdmin(UserAdmin):
         ("Map", {"fields": ("lat", "long", "google_map")}),
     )
     readonly_fields = ["google_map"]
-
+    add_form = CustomUserCreationForm
+    add_fieldsets = (
+        (None, {"fields": ("username", "email", "password1", "password2")}),
+    )
     # Ensure new fields appear in the "Add User" form
     # add_fieldsets = (
     #     ("Account Info", {"fields": ("user_type","username" )}),

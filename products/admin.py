@@ -13,21 +13,24 @@ class ProductAdmin(admin.ModelAdmin):
     ordering = ('-created_at', 'name', 'price', 'stock', 'status')  # Use `price` instead of `get_formatted_amount`
     actions = ["export_to_excel"]  # Add the export action
 
+    # ✅ Exclude "cost", "weight", and "is_water_product"
+    exclude = ('cost', 'weight', 'water_product')
 
     def has_delete_permission(self, request, obj=None):
         """Disables delete option for all products"""
         return False
+
     @admin.display(ordering='price', description="price")  # Enables sorting and renames column
     def get_formatted_amount(self, obj):
         return common.formatted_amount(obj.price)  # Use the function from common.py
-    # Allow Admins to export user data
+
     def export_to_excel(self, request, queryset):
         """Exports selected products to an Excel file."""
         wb = openpyxl.Workbook()
         ws = wb.active
         ws.title = "Product Data"
 
-        headers = ["ID", "Name", "Description", "Price", "Costing", "Stocks","Status"]
+        headers = ["ID", "Name", "Description", "Price", "Stocks", "Status"]
         ws.append(headers)  # Add headers
 
         for product in queryset:
@@ -36,8 +39,7 @@ class ProductAdmin(admin.ModelAdmin):
                 product.name,
                 product.description,
                 product.price,
-                product.cost,
-                product.stock.
+                product.stock,
                 product.status
             ])
 

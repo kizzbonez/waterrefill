@@ -9,7 +9,19 @@ from django.http import HttpResponse
 import openpyxl
 from django.utils.translation import gettext_lazy as _
 from settings.models import StoreSettings
+from django.forms import NumberInput
+import json
+class OrderDetailsForm(forms.ModelForm):
+    class Meta:
+        model = OrderDetails
+        fields = '__all__'
+        widgets = {
+            'quantity': NumberInput(attrs={'step': '1', 'min': '1','class':'field-quantity'})  # Force step of 1
+        }
+    class Media:
+        js = ('admin/js/update_total_price.js',)  # Load the JavaScript file
 
+   
 class OrderAdminForm(forms.ModelForm):
     """Customizes the 'assigned_to' and 'customer' dropdowns to show full name."""
     assigned_to = forms.ModelChoiceField(
@@ -29,10 +41,10 @@ class OrderAdminForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.fields['assigned_to'].queryset = User.objects.all().order_by('last_name', 'first_name')
+        self.fields['assigned_to'].queryset = User.objects.filter(user_type=1).order_by('last_name', 'first_name')
         self.fields['assigned_to'].label_from_instance = lambda obj: f"{obj.last_name}, {obj.first_name}"
 
-        self.fields['customer'].queryset = User.objects.all().order_by('last_name', 'first_name')
+        self.fields['customer'].queryset = User.objects.filter(user_type=0).order_by('last_name', 'first_name')
         self.fields['customer'].label_from_instance = lambda obj: f"{obj.last_name}, {obj.first_name}"
 
 class OrderDetailsInline(admin.TabularInline):
@@ -40,6 +52,16 @@ class OrderDetailsInline(admin.TabularInline):
     extra = 1
     readonly_fields = ('total_price',)
     fields = ('product', 'quantity', 'total_price')
+    form = OrderDetailsForm  # Apply the custom form
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "product":
+            products = Product.objects.all()
+            kwargs["widget"] = forms.Select(attrs={
+                "class": "field-product",
+                "data-product-prices": json.dumps({p.id: float(p.price) for p in products})  # Inject prices
+            })
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+    
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
