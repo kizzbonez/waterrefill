@@ -28,7 +28,7 @@
         <div class="col-lg-3 col-md-6">
             <div class="card bg-warning text-dark">
                 <div class="card-body">
-                    <h5>Total Revenue</h5>
+                    <h5>Total Revenue(Current Month)</h5>
                     <h2>{{ total_revenue }}</h2>
                 </div>
             </div>
@@ -75,6 +75,21 @@
                 </div>
                 <!-- /.card -->
               </div>
+              <div class="card">
+                <div class="card-body">
+                    <h5>Recent Orders</h5>
+                    <ul class="list-group">
+                        {% for order in recent_orders %}
+                            <li class="list-group-item">
+                                <strong><a href="orders/order/{{order.order_id}}/change/">{{ order.customer_name }}</a></strong> - {{ order.total_amount }}
+                                <span class="badge bg-info">{{ order.status }}</span>
+                            </li>
+                        {% empty %}
+                            <li class="list-group-item">No recent orders.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
         </div>
         
         <!-- ✅ Recent Orders -->
@@ -118,25 +133,8 @@
                 <div class="col-md-12">
                     <div class="card bg-danger text-white">
                         <div class="card-body">
-                            <h5>Forecast Sales</h5>
-                            <form method="GET" class="mb-4" name="forecast_sales"  id="forecast_sales">
-                                <div class="row">
-                                    <div class="col-md-4">
-                                        <label for="start_date">Start Date:</label>
-                                        <input type="date" id="start_date" name="start_date" value="" class="form-control">
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label for="end_date">End Date:</label>
-                                        <input type="date" id="end_date" name="end_date" value="" class="form-control">
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label>&nbsp;</label>
-                                        <button type="button" class="btn btn-primary btn-block">Filter</button>
-                                    </div>
-                                </div>
-                            </form>
-                       
-                            <h2>Select dates to forecast</h2>
+                            <h5>Forecast Sales - {{current_month}}</h5>
+                            <h2>{{forecast_sales}} - MAPE({{mape_sales}})</h2>
                         </div>
                     </div>
                 </div>
@@ -147,63 +145,36 @@
                 <div class="col-md-12">
                     <div class="card bg-warning text-white">
                         <div class="card-body">
-                            <h5>Demand Forecast</h5>
-                            <form method="GET" class="mb-4" name="forecast_demand"  id="forecast_demand">
-                                <div class="row">
-                                    <div class="col-md-4">
-                                        <label for="product_id">Select Product:</label>
-                                        <select id="product_id" name="product_id" class="form-control">
-                                            <option value="">All Products</option>
-                                            {% for product in products %}
-                                                <option value="{{ product.id }}" {% if product.id|stringformat:"s" == selected_product_id %}selected{% endif %}>
-                                                    {{ product.name }}
-                                                </option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label for="start_date">Start Date:</label>
-                                        <input type="date" id="start_date_prod" name="start_date_prod" value="" class="form-control">
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label for="end_date">End Date:</label>
-                                        <input type="date" id="end_date_prod" name="end_date_prod" value="" class="form-control">
-                                    </div>
-                                 
-                                    <div class="col-md-12 mt-3">
-                                        <button type="button" class="btn btn-primary btn-block">Filter</button>
-                                    </div>
-                                </div>
-                            </form>
-                            <h2>Select dates to forecast</h2>
+                            <h5>Demand Forecast - {{current_month}}</h5>
+                        
+                            {% for product in product_forecasts %}
+                            <div class="product-forecast">
+                                <h3>{{ product.product_name }}</h3>
+                                <p><strong>Weighted Moving Average (WMA):</strong> {{ product.wma_value_product_sold }}</p>
+                                <p><strong>Mean Absolute Percentage Error (MAPE):</strong> {{ product.mape_value }}%</p>
+                    
+                                <h4>Sales History</h4>
+                                <ul>
+                                    {% for sale in product.sales %}
+                                        <li>{{ sale.month }}: <strong>{{ sale.total_sold }}</strong> units sold</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            <hr>
+                            {% empty %}
+                                <p>No forecast data available.</p>
+                            {% endfor %}
       
                         </div>
                     </div>
                 </div>
             </div>
      
-        <div class="row">
-            <div class="col-md-12">
-                <div class="card">
-                    <div class="card-body">
-                        <h5>Recent Orders</h5>
-                        <ul class="list-group">
-                            {% for order in recent_orders %}
-                                <li class="list-group-item">
-                                    <strong><a href="orders/order/{{order.order_id}}/change/">{{ order.customer_name }}</a></strong> - {{ order.total_amount }}
-                                    <span class="badge bg-info">{{ order.status }}</span>
-                                </li>
-                            {% empty %}
-                                <li class="list-group-item">No recent orders.</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
+      
 
         </div>
     </div>
+    
 
 </div>
 

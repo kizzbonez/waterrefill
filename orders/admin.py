@@ -11,6 +11,8 @@ from django.utils.translation import gettext_lazy as _
 from settings.models import StoreSettings
 from django.forms import NumberInput
 import json
+import openpyxl
+from django.http import HttpResponse
 class OrderDetailsForm(forms.ModelForm):
     class Meta:
         model = OrderDetails
@@ -72,6 +74,37 @@ class OrderAdmin(admin.ModelAdmin):
     readonly_fields = ('created_at',)
     inlines = [OrderDetailsInline]
     ordering = ('-created_at', 'status', 'delivery_datetime')
+    actions = ["export_to_excel"]
+    def export_to_excel(self, request, queryset):
+        """Exports selected orders to an Excel file."""
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Orders Data"
+
+        # ✅ Update headers to match Order model fields
+        headers = ["Order ID", "Assigned To", "Customer", "Created At", "Total Price", "Status", "Delivery Datetime"]
+        ws.append(headers)
+
+        for order in queryset:
+            ws.append([
+                order.id,
+                order.assigned_to.get_full_name() if order.assigned_to else "N/A",
+                order.customer.get_full_name() if order.customer else "N/A",
+                order.created_at.strftime("%Y-%m-%d %H:%M:%S"),  # Format date properly
+                order.get_total_amount(),  # Calls method to get total price
+                order.get_status_display(),  # Convert status integer to text
+                order.delivery_datetime.strftime("%Y-%m-%d %H:%M:%S") if order.delivery_datetime else "N/A"
+            ])
+
+        # ✅ Set response headers for Excel download
+        response = HttpResponse(content_type="application/vnd.openpyxl")
+        response["Content-Disposition"] = 'attachment; filename="orders_export.xlsx"'
+        wb.save(response)
+        return response
+
+    # ✅ Short description for action in Django Admin
+    export_to_excel.short_description = "Export selected Orders to Excel"
+
 
     def save_model(self, request, obj, form, change):
         """Ensure stock is deducted when status is changed to Delivered (status=4)"""
@@ -114,13 +147,55 @@ class OrderAdmin(admin.ModelAdmin):
 
 @admin.register(OrderDetails)
 class OrderDetailsAdmin(admin.ModelAdmin):
-    list_display = ('id', 'order', 'get_products', 'total_price')
-    list_filter = ('order', 'total_price')
+    list_display = ('id', 'order', 'get_products', 'total_price', 'get_order_created_at')
+    list_filter = (
+        ('order__created_at', admin.DateFieldListFilter),  # ✅ Add date range filter
+        'order', 
+        'total_price', 
+        'product'
+    )
     search_fields = ('order__id',)
     readonly_fields = ('total_price',)
+    actions = ["export_to_excel"]  # ✅ Add Export action
 
     def get_products(self, obj):
         """Returns the product name."""
         return obj.product.name if obj.product else ""
 
     get_products.short_description = "Products"
+
+    def get_order_created_at(self, obj):
+        """Returns the created_at timestamp from the related Order model."""
+        return obj.order.created_at if obj.order else None
+
+    get_order_created_at.short_description = "Order Created At"
+    get_order_created_at.admin_order_field = 'order__created_at'  # Enables sorting
+
+    def export_to_excel(self, request, queryset):
+        """Exports selected order details to an Excel file."""
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Order Details Data"
+
+        # ✅ Define correct headers for Order Details
+        headers = ["Order Detail ID", "Order ID", "Product", "Quantity", "Total Price", "Order Created At"]
+        ws.append(headers)
+
+        for order_detail in queryset:
+            ws.append([
+                order_detail.id,
+                order_detail.order.id if order_detail.order else "N/A",
+                order_detail.product.name if order_detail.product else "N/A",
+                order_detail.quantity,
+                order_detail.total_price,
+                order_detail.order.created_at.strftime("%Y-%m-%d %H:%M:%S") if order_detail.order else "N/A"
+            ])
+
+        # ✅ Set response headers for Excel download
+        response = HttpResponse(content_type="application/vnd.openpyxl")
+        response["Content-Disposition"] = 'attachment; filename="order_details_export.xlsx"'
+        wb.save(response)
+        return response
+
+    # ✅ Short description for the admin action
+    export_to_excel.short_description = "Export selected Order Details to Excel"

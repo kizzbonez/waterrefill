@@ -46,156 +46,89 @@ class CustomAdmin(admin.AdminSite):
 
     index_template = "admin/index.html"  #  Use custom index template
 
+    def sales_forecast(self,sales_data):
+              #this is the code for the forecast of sales
+        sales_data_past_months = sales_data[:-1]
 
-    def forecast_product(self, request):
-        """Custom view to display product forecast data with error handling."""
-        
-        # Check if the request method is allowed
-        if request.method not in ["GET", "POST"]:
-            return HttpResponseBadRequest("Invalid request method")
+        # Number of months in past sales data
+        num_months = len(sales_data_past_months)
+       
+        # Weights from 1 to n (most recent has highest weight)
+        weights = np.arange(1,  num_months + 1)
+        # Compute Weighted Moving Average (WMA)
+        sales_sum= sum(sales_data_past_months)
+        wma_value_sales = round(np.dot(sales_data_past_months, weights) / weights.sum(),2)
+        return wma_value_sales
+   
+    def products_forecast(self):
+        # Fetch product data
+        products = Product.objects.all()
+        forecast = []
 
-        try:
-            forecast_data = []
-
-            if not forecast_data:
-                return HttpResponseNotFound(JsonResponse({"error": "Forecast data not found"}))
-
-            return JsonResponse({
-                "title": "Product Forecast",
-                "forecasts": forecast_data,
-            })
-
-        except Exception as e:
-            return JsonResponse({"error": "An error occurred", "details": str(e)}, status=500)
-
-    def calculate_product_forecast(self, product_id=None, start_date=None, end_date=None):
-        """
-        Calculate demand forecast for a selected product using Weighted Moving Average (WMA)
-        and compute MAPE against actual sales.
-        """
-        
-        forecast_results = []
-        
-        if product_id:
-            products = Product.objects.filter(id=product_id)
-        else:
-            products = Product.objects.all()
-        
         for product in products:
-            # Fetch sales data for the product (aggregate quantity ordered per day)
-            sales_query = OrderDetails.objects.filter(product=product, order__status=1)
-            
-            if start_date and end_date:
-                sales_query = sales_query.filter(order__created_at__range=[start_date, end_date])
-            
-            sales_data = (
-                sales_query.annotate(day=TruncDay("order__created_at"))
-                .values("day")
+            product_id = product.id
+            product_name = product.name
+
+            # Query monthly sold quantity
+            monthly_sold_data = (
+                OrderDetails.objects.filter(product_id=product_id, order__status=4)
+                .annotate(month=TruncMonth("order__created_at"))
+                .values("month")
                 .annotate(total_sold=Sum("quantity"))
-                .order_by("day")
+                .order_by("month")
+            )
+            # Convert to lists
+            labels = [entry["month"].strftime("%b %Y") for entry in monthly_sold_data]
+            monthly_sold = [float(entry["total_sold"]) for entry in monthly_sold_data]
+            # Skip products with no sales data
+            if not monthly_sold:
+                forecast.append({
+                    "product_name": product_name,
+                    "product_id": product_id,
+                    "wma_value_product_sold": 0,
+                    "mape_value": 0
+                })
+                continue
+
+            # Use only the most recent sales data for WMA
+            product_sold_past_months = monthly_sold[-3:]  # Take last 3 months (change as needed)
+
+            # Ensure at least one month of data exists
+            if not product_sold_past_months:
+                forecast.append({
+                    "product_name": product_name,
+                    "product_id": product_id,
+                    "wma_value_product_sold": 0,
+                    "mape_value": 0
+                })
+                continue
+
+            num_months = len(product_sold_past_months)
+            weights = np.arange(1, num_months + 1)
+
+            # Compute Weighted Moving Average (WMA)
+            wma_value_product_sold = round(
+                np.dot(product_sold_past_months, weights) / weights.sum(), 2
             )
 
-            # Convert to dictionary for fast lookup
-            sales_dict = {entry["day"].date(): float(entry["total_sold"]) for entry in sales_data}
-            
-            # Generate full date range from first sale to today
-            if sales_dict:
-                start_date = min(sales_dict.keys())
-            else:
-                continue  # Skip if no sales data for this product
-            
-            today = timezone.now().date()
-            all_dates = pd.date_range(start=start_date, end=today, freq="D")
-
-            # Fill in missing days with interpolated values (smoothing)
-            daily_sales = [sales_dict.get(date.date(), np.nan) for date in all_dates]
-            df = pd.DataFrame({'sales': daily_sales})
-            df['sales'] = df['sales'].interpolate(method='linear').fillna(method='bfill')
-            daily_sales = df['sales'].tolist()
-
-            # Calculate Weighted Moving Average (WMA)
-            forecast_sales = self.calculate_wma(daily_sales, growth_rate=0.00, forecast_days=6)  # 2% growth rate assumed
-            
             # Compute MAPE (Mean Absolute Percentage Error)
-            actual_sales_last_6_days = daily_sales[-6:] if len(daily_sales) >= 6 else daily_sales
-            mape_value = self.calculate_mape(actual_sales_last_6_days, forecast_sales[:len(actual_sales_last_6_days)])
+            if len(monthly_sold) >= 2:
+                last_actual_value = monthly_sold[-1]
+                if last_actual_value != 0:  # Avoid division by zero
+                    mape_value = abs((last_actual_value - wma_value_product_sold) / last_actual_value) * 100
+                else:
+                    mape_value = 0
+            else:
+                mape_value = 0  # Not enough data for MAPE calculation
 
-            forecast_results.append({
-                "product": product.name,
-                "historical_sales": daily_sales,
-                "forecast": forecast_sales,
-                "mape": round(mape_value, 2)
+            forecast.append({
+                "product_name": product_name,
+                "product_id": product_id,
+                "wma_value_product_sold": wma_value_product_sold,
+                "mape_value": mape_value
             })
-        
-        return forecast_results
 
-    
-    
-    def calculate_wma(self, sales_data, growth_rate=0.0, forecast_days=0):
-        """
-        Calculate the Weighted Moving Average (WMA) for the given sales data
-        and forecast future sales with an optional growth rate.
-        
-        :param sales_data: List of historical sales
-        :param growth_rate: Daily growth rate for forecasting future sales (default is 0% growth)
-        :param forecast_days: Number of days to forecast (default is 6)
-        :return: List of forecasted sales for future dates
-        """ 
-        if not sales_data or forecast_days == 0:
-            return []
-        # Convert sales data to a DataFrame for easier manipulation
-        df = pd.DataFrame({'sales': sales_data})
-
-        # 1. Replace zeros with NaN (so we can fill them with meaningful values)
-        df['sales'] = df['sales'].replace(0, np.nan)
-
-        # 2. Apply smoothing - Choose one:
-        df['sales'] = df['sales'].interpolate(method='linear')  # Linear Interpolation
-        # df['sales'] = df['sales'].fillna(df['sales'].rolling(3, min_periods=1).mean())  # Rolling Mean
-        # df['sales'] = df['sales'].fillna(df['sales'].ewm(span=3, adjust=False).mean())  # Exponential Smoothing
-
-        # If any zeros are still present (e.g., at the start), replace them with a small value
-        df['sales'] = df['sales'].fillna(method='bfill')  # Fill remaining NaN with the next available value
-
-        # Convert back to list after smoothing
-        smoothed_sales = df['sales'].tolist()
-
-        # Define weights (e.g., more recent sales data has higher weight)
-        weights = list(range(1, len(smoothed_sales) + 1))  # weights from 1 to n
-        total_weight = sum(weights)
-
-        # Calculate WMA for the last available day
-        wma = sum([s * w for s, w in zip(smoothed_sales, weights)]) / total_weight
-
-        # Print WMA for the last day (just for clarity)
-        print(f"Weighted Moving Average for the last available day: {wma}")
-
-        # Forecast sales for the next `forecast_days` using the WMA and growth rate
-        forecast_sales = []
-        for i in range(forecast_days):  # Forecasting `forecast_days` days
-            forecasted_value = wma * (1 + growth_rate)**i  # Adjust for growth rate
-            forecast_sales.append(forecasted_value)
-    
-        return forecast_sales
-
-
-    def calculate_mape(self, actual_sales, forecast_sales):
-        """
-        Compute the Mean Absolute Percentage Error (MAPE) between actual and forecasted sales.
-        
-        :param actual_sales: List of actual sales values for the forecast period
-        :param forecast_sales: List of forecasted sales values for the same period
-        :return: MAPE percentage
-        """
-        errors = []
-        for actual, forecast in zip(actual_sales, forecast_sales):
-            if actual == 0:
-                continue  # Skip if actual sales are zero
-            abs_percentage_error = abs((actual - forecast) / actual) * 100
-            errors.append(abs_percentage_error)
-
-        # Calculate and return the average MAPE
-        return sum(errors) / len(errors) if errors else 0
+        return forecast
 
 
     def index(self, request, extra_context=None):
@@ -203,37 +136,7 @@ class CustomAdmin(admin.AdminSite):
         if extra_context is None:
             extra_context = {}
         
-       # extra_context.update(jazzmin_custom_links(request))
 
-        # Get start and end date from request
-        start_date_str = request.GET.get("start_date")
-        end_date_str = request.GET.get("end_date")
-
-        start_date_prod = request.GET.get("start_date_prod")
-        end_date_prod = request.GET.get("end_date_prod")
-        product_id = request.GET.get("product_id")
-
-        # Define the expected date format
-        date_format = "%Y-%m-%d"
-
-        try:
-            # Convert string dates to datetime (if provided)
-            start_date_fi = datetime.strptime(start_date_str, date_format) if start_date_str else timezone.now()
-            end_date_fi = datetime.strptime(end_date_str, date_format) if end_date_str else timezone.now()
-        except ValueError:
-            # Handle invalid date formats
-            start_date_fi = timezone.now()
-            end_date_fi = timezone.now()
-
-        # ✅ Ensure start_date_fi is before end_date_fi
-        if start_date_fi > end_date_fi:
-            start_date_fi, end_date_fi = end_date_fi, start_date_fi  # Swap if reversed
-
-        # Calculate the number of days in the range
-        date_diff = end_date_fi  - start_date_fi 
-
-        num_days = date_diff.days  # This will give you the number of days between the two dates
-        #  Fetch analytics data
 
          #  Aggregate total revenue per month
         monthly_sales = (
@@ -271,18 +174,17 @@ class CustomAdmin(admin.AdminSite):
         daily_sales_labels = [entry["day"].strftime("%b %d") for entry in filled_sales]
         daily_sales_data = [entry["total"] for entry in filled_sales]
 
-
-
-
-
         #  Extract labels (months) and data (total revenue per month)
         sales_labels = [entry["month"].strftime("%b %Y") for entry in monthly_sales]  # Example: ['Jan 2024', 'Feb 2024']
         sales_data = [float(entry["total"]) for entry in monthly_sales]  # Convert to float for Chart.js
-        # Calculate Weighted Moving Average (WMA)
-        wma_value = self.calculate_wma(   daily_sales_data, 0,num_days)
 
-         # ✅ Calculate MAPE (Mean Absolute Percentage Error)
-        mape_value = self.calculate_mape(   daily_sales_data, wma_value)
+        wma_value_sales = self.sales_forecast(sales_data)
+        # Calculate the Mape (total sales - wma) / total sales * 100
+        mape_value = ((sales_data[-1] - wma_value_sales) / sales_data[-1] ) * 100
+
+        product_forecasts = self.products_forecast()
+       
+
         now = timezone.now()
         current_month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         next_month_start = (current_month_start + timezone.timedelta(days=32)).replace(day=1)
@@ -306,22 +208,20 @@ class CustomAdmin(admin.AdminSite):
             }
             for product in critical_products
         ]
-        product_forecasts = self.calculate_product_forecast(product_id, start_date_prod, end_date_prod)
+        
+
         extra_context["critical_products"] = formatted_critical_products
-        extra_context["product_forecasts"] = product_forecasts
+        extra_context["product_forecasts"] = []
         extra_context["total_revenue"] = locale.currency(total_revenue, grouping=True)
         extra_context["total_users"] = CustomUser.objects.count()
         extra_context["total_orders"] = Order.objects.count()
         extra_context["pending_orders"] = Order.objects.filter(status=0).count()
         extra_context["sales_labels"] =  sales_labels
+        extra_context["product_forecasts"] = product_forecasts
         extra_context["sales_data"] =   sales_data # Example sales data
-        extra_context["forecast"] =    locale.currency(sum(wma_value), grouping=True)  # Example sales data
-        extra_context["mape"] =  f"{mape_value:.2f}%"  # Example MAPE value
-        extra_context["start_date"] =  start_date_str
-        extra_context["end_date"] =  end_date_str
-        extra_context["start_date_prod"] = start_date_prod
-        extra_context["end_date_prod"] = end_date_prod
-        extra_context["selected_product_id"] = product_id
+        extra_context["current_month"] = datetime.now().strftime("%B") 
+        extra_context["forecast_sales"] =    locale.currency(wma_value_sales, grouping=True)  # Example sales data
+        extra_context["mape_sales"] =  f"{mape_value:.2f}%"  # Example MAPE value
         extra_context["products"] = Product.objects.all()
             #  Fetch order data with user and total amount
         recent_orders = Order.objects.select_related('customer').prefetch_related('order_details').order_by('-created_at')[:5]

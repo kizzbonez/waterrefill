@@ -4,10 +4,11 @@ from django.http import HttpResponse
 import openpyxl
 from django.utils.translation import gettext_lazy as _
 from common import common
-
+from django.urls import reverse
+from django.utils.html import format_html
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('name', 'get_formatted_amount', 'stock', 'created_at', 'status')  # Columns shown in admin list view
+    list_display = ('name', 'get_formatted_amount', 'stock', 'created_at', 'status','view_sales_history')  # Columns shown in admin list view
     search_fields = ('name',)  # Enables search by product name
     list_filter = ( ('created_at', admin.DateFieldListFilter), 'status')  # Removed `get_formatted_amount`
     ordering = ('-created_at', 'name', 'price', 'stock', 'status')  # Use `price` instead of `get_formatted_amount`
@@ -15,7 +16,12 @@ class ProductAdmin(admin.ModelAdmin):
 
     # ✅ Exclude "cost", "weight", and "is_water_product"
     exclude = ('cost', 'weight', 'water_product')
+    def view_sales_history(self, obj):
+        """Generate a link to order details filtered by the product"""
+        url = reverse('admin:orders_orderdetails_changelist') + f"?product__id__exact={obj.id}"
+        return format_html(f'<a href="{url}" target="_blank">View Sales</a>')
 
+    view_sales_history.short_description = "Sales History"
     def has_delete_permission(self, request, obj=None):
         """Disables delete option for all products"""
         return False
