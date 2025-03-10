@@ -147,7 +147,7 @@ class OrderAdmin(admin.ModelAdmin):
 
 @admin.register(OrderDetails)
 class OrderDetailsAdmin(admin.ModelAdmin):
-    list_display = ('id', 'order', 'get_products', 'total_price', 'get_order_created_at')
+    list_display = ('id', 'order', 'get_products','quantity', 'total_price', 'get_order_created_at')
     list_filter = (
         ('order__created_at', admin.DateFieldListFilter),  # ✅ Add date range filter
         'order', 
