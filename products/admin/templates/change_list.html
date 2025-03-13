@@ -1,0 +1,61 @@
+{% extends "admin/change_list.html" %}
+
+{% block filters %}
+    <div class="custom-filter-container">
+        <div class="date-filter-row">
+            <label>Filter by Date:</label>
+            <form method="GET">
+                <input type="date" name="created_at__gte" placeholder="From Date"
+                       value="{{ request.GET.created_at__gte }}">
+                <input type="date" name="created_at__lte" placeholder="To Date"
+                       value="{{ request.GET.created_at__lte }}">
+                <button type="submit">Apply</button>
+            </form>
+        </div>
+
+        <div class="status-filter-row">
+            <label>Filter by Status:</label>
+            <form method="GET">
+                <select name="status">
+                    <option value="">All</option>
+                    <option value="Completed" {% if request.GET.status == "Completed" %}selected{% endif %}>Completed</option>
+                    <option value="Pending" {% if request.GET.status == "Pending" %}selected{% endif %}>Pending</option>
+                </select>
+                <button type="submit">Apply</button>
+            </form>
+        </div>
+    </div>
+
+    <style>
+        .custom-filter-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .date-filter-row, .status-filter-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input[type="date"], select {
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+{% endblock %}

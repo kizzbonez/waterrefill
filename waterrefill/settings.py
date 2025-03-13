@@ -62,7 +62,7 @@ INSTALLED_APPS = [
     'orders',
     'payments',
     'settings',
-    'django_celery_beat'
+    'django_celery_beat',
 
 ]
 

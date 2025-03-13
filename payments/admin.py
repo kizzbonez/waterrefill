@@ -13,7 +13,7 @@ from django import forms
 from django.urls import path
 from django.http import JsonResponse
 from orders.models import Order
-
+from django.db import models
 class PaymentAdminForm(forms.ModelForm):
     amount_to_pay = forms.CharField(
         required=False, 
@@ -27,10 +27,25 @@ class PaymentAdminForm(forms.ModelForm):
         label="BALANCE AMOUNT", 
         widget=forms.TextInput(attrs={'style': 'font-weight: bold; color: red;'})
     )
+    
+    def __init__(self, *args, **kwargs):
+        """Dynamically populate amount_to_pay based on the current Payment ID"""
+        super().__init__(*args, **kwargs)
+        
+        if self.instance:  # Check if this is an existing payment
+            obj = self.instance
+            if self.instance.order_id:
+                # Retrieve total amount from the order model
+                previousPayment = Payment.objects.filter(order_id=obj.order_id, created_at__lt=obj.created_at).aggregate(Sum('amount'))['amount__sum'] or 0
+                amount_to_pay = obj.amount_to_pay - previousPayment 
+                self.fields['amount_to_pay'].initial = f"{amount_to_pay}"
+                self.fields['balance_amount'].initial = f"{amount_to_pay - obj.amount}"
 
     class Meta:
         model = Payment
         fields = '__all__'
+    class Media:
+        js = ('admin/js/balance.js',)  # Load the JavaScript file
 
     def clean_order_id(self):
         """Ensure that Order ID is required"""
@@ -71,6 +86,7 @@ class PaymentAdmin(admin.ModelAdmin):
     ) 
     ordering = ('-created_at', '-order_id', 'status', 'amount')  
     actions = ["export_to_excel"]  #  Add the export action
+ 
     def get_queryset(self, request):
         """Annotate queryset to make Amount to Pay and Balance sortable"""
         qs = super().get_queryset(request).select_related('order_id')
@@ -86,6 +102,7 @@ class PaymentAdmin(admin.ModelAdmin):
         urls = super().get_urls()
         custom_urls = [
             path('get-order-total/', self.get_order_total, name='get_order_total'),
+            path('get-amount-to-pay/', self.ajax_retrieve_amount_to_pay, name='get_amount_to_pay'),
         ]
         return custom_urls + urls
 
@@ -106,16 +123,45 @@ class PaymentAdmin(admin.ModelAdmin):
     def get_formatted_amount(self, obj):
         """Retrieve formatted amount paid"""
         return common.formatted_amount(obj.amount)  
+    def amount_to_pay(self, obj):
+        """Retrieve total order amount from annotated queryset"""
+        if hasattr(obj, "order_id"):
+            order_id = obj.order_id
+            previousPayment = Payment.objects.filter(order_id=order_id, created_at__lt=obj.created_at).aggregate(Sum('amount'))['amount__sum'] or 0
+            balance = obj.amount_to_pay - previousPayment
+        else:
+            order_id = obj.id
+            previousPayment = Payment.objects.filter(order_id=obj.id).aggregate(Sum('amount'))['amount__sum'] or 0
+            balance = obj.get_total_amount() - previousPayment 
+          
+        return  balance  if   balance  else 0.00
+        
+    def ajax_retrieve_amount_to_pay(self,request):
+        """AJAX endpoint to fetch the amount to pay for a selected order"""
+        order_id = request.GET.get('order_id')
+        if not order_id:
+            return JsonResponse({'error': 'No order ID provided'}, status=400)
+
+        try:
+            order = Order.objects.get(id=order_id)
+            total_amount = self.amount_to_pay(order)
+            return JsonResponse({'amount_to_pay': self.amount_to_pay(order)})
+        except Order.DoesNotExist:
+            return JsonResponse({'error': 'Order not found'}, status=404)
 
     @admin.display(ordering='amount_to_pay', description="Amount to Pay")
     def get_amount_to_pay(self, obj):
         """Retrieve total order amount from annotated queryset"""
-        return common.formatted_amount(obj.amount_to_pay) if obj.amount_to_pay else "N/A"
+        balance = self.amount_to_pay(obj)
+        return common.formatted_amount(  balance ) if   balance  else common.formatted_amount(0.00)
 
     @admin.display(ordering='balance', description="Balance")
     def get_balance(self, obj):
         """Retrieve balance from annotated queryset"""
-        return common.formatted_amount(obj.balance) if obj.balance else "N/A"
+        #previousPayment date should be less than the current payment date
+        previousPayment = self.amount_to_pay(obj)
+        balance = previousPayment - obj.amount
+        return common.formatted_amount(    balance) if balance else common.formatted_amount(0.00)
 
     def export_to_excel(self, request, queryset):
         """Exports selected payments to an Excel file."""

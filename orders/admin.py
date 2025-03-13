@@ -119,6 +119,8 @@ class OrderAdmin(admin.ModelAdmin):
             with transaction.atomic():
                 for order_detail in OrderDetails.objects.filter(order=obj):
                     product = order_detail.product
+                    if product.is_water_product:
+                        continue  # Skip water products
                     if product.stock >= order_detail.quantity:
                         product.stock -= order_detail.quantity
                         product.save()
