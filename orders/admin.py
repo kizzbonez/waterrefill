@@ -23,7 +23,7 @@ class OrderDetailsForm(forms.ModelForm):
             'quantity': NumberInput(attrs={'step': '1', 'min': '1','class':'field-quantity'})  # Force step of 1
         }
     class Media:
-        js = ('admin/js/update_total_price.js',)  # Load the JavaScript file
+        js = ('admin/js/update_total_price_updated.js',)  # Load the JavaScript file
 
    
 class OrderAdminForm(forms.ModelForm):
