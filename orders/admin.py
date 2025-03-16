@@ -83,7 +83,7 @@ class OrderAdmin(admin.ModelAdmin):
          return False  # Prevent deletion if no specific object is provided
         order_id = obj.id
         # Check if the product is in any order
-        if Payment.objects.filter(order_id=order_id).exists() or obj.status != 0:
+        if Payment.objects.filter(order_id=order_id).exists() or  obj.status != 4:
             return False
         return True
     def has_change_permission(self, request, obj=None):
