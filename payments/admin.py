@@ -14,6 +14,8 @@ from django.urls import path
 from django.http import JsonResponse
 from orders.models import Order
 from django.db import models
+from rangefilter.filters import DateRangeFilter, DateTimeRangeFilter
+from decimal import Decimal
 class PaymentAdminForm(forms.ModelForm):
     amount_to_pay = forms.CharField(
         required=False, 
@@ -80,21 +82,36 @@ class PaymentAdmin(admin.ModelAdmin):
     )
     search_fields = ('ref_code', 'amount')
     list_filter = (
-        ('created_at', admin.DateFieldListFilter),
+        ('created_at', DateRangeFilter),
         'payment_method',
         'amount'
     ) 
     ordering = ('-created_at', '-order_id', 'status', 'amount')  
     actions = ["export_to_excel"]  #  Add the export action
- 
+    def has_delete_permission(self, request, obj=None):
+        """Disables delete option for all products"""
+        return False
+    def has_change_permission(self, request, obj=None):
+        """Disables delete option for all products"""
+        if obj is None:
+         return False  # Prevent deletion if no specific object is provided
+        # Check if the product is in any order
+        if obj.status == 1:
+            return False
+        return True
     def get_queryset(self, request):
         """Annotate queryset to make Amount to Pay and Balance sortable"""
         qs = super().get_queryset(request).select_related('order_id')
-        
+
+        # Aggregate total_price from order_details
         qs = qs.annotate(
-            amount_to_pay=F('order_id__order_details__total_price'),
-            balance=ExpressionWrapper(F('order_id__order_details__total_price') - F('amount'), output_field=DecimalField(max_digits=10, decimal_places=2))
-        )
+            amount_to_pay=Sum('order_id__order_details__total_price'),  # Aggregate sum
+            balance=ExpressionWrapper(
+                Sum('order_id__order_details__total_price') - F('amount'),
+                output_field=DecimalField(max_digits=10, decimal_places=2)
+            )
+        ).distinct()
+
         return qs
 
     def get_urls(self):
@@ -158,10 +175,12 @@ class PaymentAdmin(admin.ModelAdmin):
     @admin.display(ordering='balance', description="Balance")
     def get_balance(self, obj):
         """Retrieve balance from annotated queryset"""
-        #previousPayment date should be less than the current payment date
+        # previousPayment date should be less than the current payment date
         previousPayment = self.amount_to_pay(obj)
-        balance = previousPayment - obj.amount
-        return common.formatted_amount(    balance) if balance else common.formatted_amount(0.00)
+        # Ensure both values are Decimal
+        previousPayment = Decimal(previousPayment)
+        balance = previousPayment - Decimal(obj.amount)
+        return common.formatted_amount(balance) if balance else common.formatted_amount(0.00)
 
     def export_to_excel(self, request, queryset):
         """Exports selected payments to an Excel file."""
@@ -192,5 +211,6 @@ class PaymentAdmin(admin.ModelAdmin):
         response["Content-Disposition"] = 'attachment; filename="payment_export.xlsx"'
         wb.save(response)
         return response
+
 
     export_to_excel.short_description = "Export selected Payments to Excel"

@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     'payments',
     'settings',
     'django_celery_beat',
+    'rangefilter',
 
 ]
 
@@ -154,8 +155,8 @@ SIMPLE_JWT = {
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
-
+#TIME_ZONE = 'Asia/Singapore'
+TIME_ZONE ="UTC"
 USE_I18N = True
 
 USE_TZ = True
@@ -178,6 +179,7 @@ JAZZMIN_SETTINGS = {
     "site_title": "My Admin",
     "site_header": "My Dashboard",
     "welcome_sign": "Welcome to RefillPro Admin Panel",
+    "site_logo": "image/AquaZen_circle.png",
 
     # 🔹 Control Sidebar Order
     "order_with_respect_to": [

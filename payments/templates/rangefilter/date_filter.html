@@ -1,0 +1,166 @@
+<details data-filter-title="created at" open="">
+    <summary> By created at </summary>
+    <link rel="stylesheet" type="text/css" href="/static/admin/css/widgets.css">
+    <style nonce="">
+        
+        .admindatefilter .button, .admindatefilter input[type=submit], .admindatefilter input[type=button], .admindatefilter .submit-row input, .admindatefilter a.button,
+        .admindatefilter .button, .admindatefilter input[type=reset] {
+            background: var(--button-bg);
+            padding: 4px 5px;
+            border: none;
+            border-radius: 4px;
+            color: var(--button-fg);
+            cursor: pointer;
+        }
+        summary::marker {
+            content: none;
+            display: none;
+        }
+        .admindatefilter {
+            margin: 5px 0;
+            padding: 0 0px 9px;
+            display: flex;
+            border-bottom: 1px solid var(--hairline-color);
+        }
+        .admindatefilter .date{
+            padding-right: 10px;
+        }
+        .admindatefilter:last-child {
+            border-bottom: none;
+        }
+        .admindatefilter p {
+            padding-left: 0px;
+            line-height: 0;
+        }
+        .admindatefilter p.datetime {
+            line-height: 0;
+        }
+        .admindatefilter .timezonewarning {
+            display: none;
+        }
+        .admindatefilter .datetimeshortcuts a:first-child {
+            margin-right: 4px;
+            display: none;
+        }
+        .calendarbox {
+            z-index: 1100;
+        }
+        .date-icon{
+            right: 30px;
+        }
+        .clockbox {
+            z-index: 1100;
+            margin-left: -8em !important;
+            margin-top: 5em !important;
+        }
+        .admindatefilter .datetimeshortcuts {
+            font-size: 0;
+            float: right;
+            position: absolute;
+            padding-top: 4px;
+        }
+        .admindatefilter a {
+            color: #999;
+            position: absolute;
+            padding-top: 3px;
+            padding-left: 4px;
+        }
+        @media (min-width: 768px) {
+            .calendarbox {
+                margin-left: -16em !important;
+                margin-top: 9em !important;
+            }
+        }
+        @media (max-width: 767px) {
+            .calendarbox {
+                overflow: visible;
+            }
+        }
+    </style>
+    
+    
+    <script type="text/javascript" src="/admin/jsi18n/"></script>
+    <script type="text/javascript" nonce="">
+        django.jQuery('document').ready(function () {
+            django.jQuery('.admindatefilter #created-at-form input[type="submit"]').click(function(event) {
+                event.preventDefault();
+                var form = django.jQuery(this).closest('div.admindatefilter').find('form');
+                var query_string = django.jQuery('input#created-at-query-string').val();
+                var form_data = form.serialize();
+                var amp = query_string === "?" ? "" : "&";  // avoid leading ?& combination
+                window.location = window.location.pathname + query_string + amp + form_data;
+            });
+    
+            django.jQuery('.admindatefilter #created-at-form input[type="reset"]').click(function() {
+                var form = django.jQuery(this).closest('div.admindatefilter').find('form');
+                var query_string = form.find('input#created-at-query-string').val();
+                window.location = window.location.pathname + query_string;
+            });
+        });
+        
+        function embedScript(url) {
+            return new Promise(function pr(resolve, reject) {
+                var newScript = document.createElement("script");
+                newScript.type = "text/javascript";
+                newScript.src = url;
+                newScript.onload = resolve;
+                if ("" !== "") {
+                    newScript.setAttribute("nonce", "");
+                }
+                document.head.appendChild(newScript);
+            });
+        }
+    
+        django.jQuery(window).on('load', function () {
+            if (!('DateTimeShortcuts' in window)) {
+                var promiseList = [];
+    
+                
+                    promiseList.push(embedScript("/static/admin/js/calendar.js"));
+                
+                    promiseList.push(embedScript("/static/admin/js/admin/DateTimeShortcuts.js"));
+                
+    
+                Promise.all(promiseList).then(function() {
+                    django.jQuery('.datetimeshortcuts').remove();
+                    if ('DateTimeShortcuts' in window) {
+                        window.DateTimeShortcuts.init();
+                    }
+                });
+            }
+        });
+    </script>
+    
+    <div class="admindatefilter">
+        
+            <p>
+        
+        </p><p class="date">
+      <input type="text" name="created_at__range__gte" class="vDateField" size="10" placeholder="From date" id="id_created_at__range__gte"><span class="datetimeshortcuts">&nbsp;<a href="#">Today</a>&nbsp;|&nbsp;<a href="#" id="calendarlink0"><span class="date-icon" title="Choose a Date"></span></a></span>
+    
+    
+    <div class="help timezonewarning">Note: You are 8 hours ahead of server time.</div></p>
+        
+        
+      <p></p>
+    
+      
+      <p>
+        
+        </p><p class="date">
+      <input type="text" name="created_at__range__lte" class="vDateField" size="10" placeholder="To date" id="id_created_at__range__lte"><span class="datetimeshortcuts">&nbsp;<a href="#">Today</a>&nbsp;|&nbsp;<a href="#" id="calendarlink1"><span class="date-icon" title="Choose a Date"></span></a></span>
+    
+    
+    <div class="help timezonewarning">Note: You are 8 hours ahead of server time.</div></p>
+        
+        
+          
+        
+      <p></p>
+            
+                <input type="hidden" id="created-at-query-string" value="?">
+            
+            
+        
+    </div>
+    </details>

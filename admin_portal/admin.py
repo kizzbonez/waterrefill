@@ -207,9 +207,17 @@ class CustomAdmin(admin.AdminSite):
                 "status": "Critical" if product.stock == 0 else "Low Stock"
             }
             for product in critical_products
+            if product.stock_alert_level not in [None, 0]
         ]
-        
-
+        # pass active products to the template
+        formatted_products = [
+            {
+                "id": product.id,
+                "name": product.name,
+                "stock": product.stock,
+            }
+            for product in Product.objects.filter(status=1)
+        ]
         extra_context["critical_products"] = formatted_critical_products
         extra_context["product_forecasts"] = []
         extra_context["total_revenue"] = locale.currency(total_revenue, grouping=True)
@@ -218,6 +226,7 @@ class CustomAdmin(admin.AdminSite):
         extra_context["pending_orders"] = Order.objects.filter(status=0).count()
         extra_context["sales_labels"] =  sales_labels
         extra_context["product_forecasts"] = product_forecasts
+        extra_context["all_products"] =    formatted_products
         extra_context["sales_data"] =   sales_data # Example sales data
         extra_context["current_month"] = datetime.now().strftime("%B") 
         extra_context["forecast_sales"] =    locale.currency(wma_value_sales, grouping=True)  # Example sales data

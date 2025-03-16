@@ -1,7 +1,8 @@
 
 # Create your models here.
 from django.db import models
-
+from django.core.exceptions import ValidationError
+from django.db.models import Sum
 class Payment(models.Model):
 
     PAYMENT_STATUS_CHOICES = (
@@ -38,6 +39,16 @@ class Payment(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
     
+    def save(self, *args, **kwargs):
+        """Prevent multiple payments that exceed the total order amount"""
+        if self.order_id:
+            total_order_amount = self.order_id.get_total_amount()
+            previous_payments = Payment.objects.filter(order_id=self.order_id).aggregate(Sum('amount'))['amount__sum'] or 0
+            remaining_balance = total_order_amount - previous_payments
 
+            if self.amount > remaining_balance:
+                raise ValidationError(f"Cannot save. Payment exceeds remaining balance. Remaining: {remaining_balance:.2f}")
+
+        super().save(*args, **kwargs)
 def __str__(self):
     return f"Payment {self.id} - {self.get_status_display()} ({self.ref_code or 'No Ref'})"

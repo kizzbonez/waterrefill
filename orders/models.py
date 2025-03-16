@@ -1,6 +1,8 @@
 from django.db import models
 from django.db.models.signals import post_save, m2m_changed ,pre_save
 from django.dispatch import receiver
+from django.core.exceptions import ValidationError
+from django.db.models import Sum
 
 class Order(models.Model):
     ORDER_STATUS_CHOICES = (
@@ -41,6 +43,7 @@ class OrderDetails(models.Model):
 
 
     order = models.ForeignKey('Order', on_delete=models.CASCADE, related_name='order_details')
+    current_product_price =  models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     product = models.ForeignKey('products.Product', on_delete=models.CASCADE, related_name='order_details', null=True)
     total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     quantity = models.DecimalField(max_digits=10, decimal_places=2, default=1.00)  # Default to 1 instead of 0
@@ -48,7 +51,22 @@ class OrderDetails(models.Model):
     def save(self, *args, **kwargs):
         """Automatically updates total price before saving."""
         if self.product and self.quantity:
-            self.total_price = self.product.price * self.quantity  # Ensure correct total price
+              # Check if this is an update and compare product_id
+            if self.pk:  # This means the instance is already saved before
+                existing_instance = OrderDetails.objects.filter(pk=self.pk).first()
+                if existing_instance and existing_instance.product_id != self.product_id:
+                    self.current_product_price = self.product.price  # Update price when product changes
+            #if curren_product_price is not None, then use it to calculate total price
+            if self.current_product_price:
+                self.total_price = self.current_product_price * self.quantity
+            else:
+                self.total_price = self.product.price * self.quantity  # Ensure correct total price
+            # Store the current price of the product for first save
+            if not self.current_product_price:
+                self.current_product_price = self.product.price
+
+
+          
         super().save(*args, **kwargs)
 
     def __str__(self):

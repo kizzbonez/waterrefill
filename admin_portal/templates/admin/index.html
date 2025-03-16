@@ -143,28 +143,68 @@
 
             <div class="row">
                 <div class="col-md-12">
-                    <div class="card bg-warning text-white">
+                    <div class="card">
                         <div class="card-body">
                             <h5>Demand Forecast - {{current_month}}</h5>
-                        
-                            {% for product in product_forecasts %}
-                            <div class="product-forecast">
-                                <h3>{{ product.product_name }}</h3>
-                                <p><strong>Weighted Moving Average (WMA):</strong> {{ product.wma_value_product_sold }}</p>
-                                <p><strong>Mean Absolute Percentage Error (MAPE):</strong> {{ product.mape_value }}%</p>
-                    
-                                <h4>Sales History</h4>
-                                <ul>
-                                    {% for sale in product.sales %}
-                                        <li>{{ sale.month }}: <strong>{{ sale.total_sold }}</strong> units sold</li>
+
+                            <table class="table table-bordered">
+                                <thead class="thead-dark">
+                                    <tr>
+                                        <th>Product Name</th>
+                                        <th>WMA</th>
+                                        <th>MAPE</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                     
+                                    {% for product in product_forecasts|dictsortreversed:"wma_value_product_sold" %}
+                                        <tr>
+                                            <td>{{ product.product_name }}</td>
+                                            <td>{{ product.wma_value_product_sold }}</td>
+                                            <td>{{ product.mape_value|floatformat:2 }}%</td>
+                                        </tr>
+                                    {% empty %}
+                                        <tr>
+                                            <td colspan="3" class="text-center">No forecast data available.</td>
+                                        </tr>
                                     {% endfor %}
-                                </ul>
-                            </div>
-                            <hr>
-                            {% empty %}
-                                <p>No forecast data available.</p>
-                            {% endfor %}
-      
+                                </tbody>
+                            </table>
+                    
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5>All Products</h5>
+
+                            <table class="table table-bordered">
+                                <thead class="thead-dark">
+                                    <tr>
+                                        <th>Product Name</th>
+                                        <th>Stocks</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                     
+                                    {% for product in all_products %}
+                                        <tr>
+                                            <td>{{ product.name }}</td>
+                                            <td>{{ product.stock }}</td>
+
+                                        </tr>
+                                    {% empty %}
+                                        <tr>
+                                            <td colspan="3" class="text-center">No Listed Products</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                    
                         </div>
                     </div>
                 </div>

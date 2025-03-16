@@ -9,7 +9,7 @@ from django.utils.html import format_html
 from orders.models import OrderDetails
 from django.core.exceptions import ValidationError
 from django import forms
-
+from rangefilter.filters import DateRangeFilter, DateTimeRangeFilter
 class ProductAdminForm(forms.ModelForm):
     class Meta:
         model = Product
@@ -25,7 +25,7 @@ class ProductAdminForm(forms.ModelForm):
 class ProductAdmin(admin.ModelAdmin):
     list_display = ('name', 'get_formatted_amount', 'stock', 'created_at', 'status','view_sales_history')  # Columns shown in admin list view
     search_fields = ('name',)  # Enables search by product name
-    list_filter = ( ('created_at', admin.DateFieldListFilter), 'status')  # Removed `get_formatted_amount`
+    list_filter = ( ('created_at', DateRangeFilter), 'status')  # Removed `get_formatted_amount`
     ordering = ('-created_at', 'name', 'price', 'stock', 'status')  # Use `price` instead of `get_formatted_amount`
     actions = ["export_to_excel"]  # Add the export action
     form = ProductAdminForm

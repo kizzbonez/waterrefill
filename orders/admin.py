@@ -13,6 +13,8 @@ from django.forms import NumberInput
 import json
 import openpyxl
 from django.http import HttpResponse
+from rangefilter.filters import DateRangeFilter, DateTimeRangeFilter
+from payments.models import Payment
 class OrderDetailsForm(forms.ModelForm):
     class Meta:
         model = OrderDetails
@@ -69,12 +71,30 @@ class OrderDetailsInline(admin.TabularInline):
 class OrderAdmin(admin.ModelAdmin):
     list_display = ('id', 'get_assigned_to_name', 'get_customer_name', 'created_at', 'get_total_price', 'status', 'delivery_datetime')
     search_fields = ('assigned_to__first_name', 'assigned_to__last_name', 'customer__first_name', 'customer__last_name')
-    list_filter = ('customer', 'assigned_to', ('created_at', admin.DateFieldListFilter))
+    list_filter = ( ('created_at', DateRangeFilter),'customer', 'assigned_to')
     form = OrderAdminForm
     readonly_fields = ('created_at',)
     inlines = [OrderDetailsInline]
     ordering = ('-created_at', 'status', 'delivery_datetime')
     actions = ["export_to_excel"]
+    def has_delete_permission(self, request, obj=None):
+        """Disables delete option for all products"""
+        if obj is None:
+         return False  # Prevent deletion if no specific object is provided
+        order_id = obj.id
+        # Check if the product is in any order
+        if Payment.objects.filter(order_id=order_id).exists() or obj.status != 0:
+            return False
+        return True
+    def has_change_permission(self, request, obj=None):
+        """Disables update option for all products"""
+        if obj is None:
+         return False  # Prevent changes if no specific object is provided
+        order_id = obj.id
+        # Check if the product is in any order
+        if Payment.objects.filter(order_id=order_id).exists() :
+            return False
+        return True
     def export_to_excel(self, request, queryset):
         """Exports selected orders to an Excel file."""
         wb = openpyxl.Workbook()
@@ -119,7 +139,7 @@ class OrderAdmin(admin.ModelAdmin):
             with transaction.atomic():
                 for order_detail in OrderDetails.objects.filter(order=obj):
                     product = order_detail.product
-                    if product.is_water_product:
+                    if product.water_product:
                         continue  # Skip water products
                     if product.stock >= order_detail.quantity:
                         product.stock -= order_detail.quantity
@@ -151,7 +171,7 @@ class OrderAdmin(admin.ModelAdmin):
 class OrderDetailsAdmin(admin.ModelAdmin):
     list_display = ('id', 'order', 'get_products','quantity', 'total_price', 'get_order_created_at')
     list_filter = (
-        ('order__created_at', admin.DateFieldListFilter),  # ✅ Add date range filter
+        ('order__created_at', DateRangeFilter),  # ✅ Add date range filter
         'order', 
         'total_price', 
         'product'
