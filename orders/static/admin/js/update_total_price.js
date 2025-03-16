@@ -3,7 +3,12 @@ document.addEventListener("DOMContentLoaded", function () {
     jQuery(document).ready(function ($) {
 
         $('.add-row').prepend('<td><span id="total-price" style="font-weight:bold">Total Price:</span></td>');
-
+        updateTotalPrice()
+        $(".field-product select").each(function () {
+            if ($(this).val()) {  // Check if the select has a value
+                $(this).prop("disabled", true);  // Disable it
+            }
+        });
         function updateTotalPrice() {
             _total_price = $('#total-price');
             field_total_price = $('.field-total_price p');
@@ -44,12 +49,12 @@ document.addEventListener("DOMContentLoaded", function () {
         // Update total price when quantity changes
         $(document).on('input','.field-quantity input', function () {
             let row = $(this).closest('tr');
-            console.log(row.attr('data-price'))
             
             let quantity = parseFloat($(this).val()) || 0;
-            let price = parseFloat(row.data('price')) || 0;
+            let price = parseFloat(row.data('price')) ||  parseFloat(row.find('.field-current_product_price input').val()) || 0;
             let totalPriceField = row.find('.field-total_price p');
             if (totalPriceField.length) {
+
                 let totalPrice = (quantity * price).toFixed(2);
                 totalPriceField.text(totalPrice);
             }

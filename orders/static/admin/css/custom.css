@@ -1,0 +1,5 @@
+
+#order_details-group table th:nth-child(5),  /* Targets the third <th> */
+#order_details-group table td:nth-child(5) { /* Targets the third <td> */
+    display: none !important;
+}

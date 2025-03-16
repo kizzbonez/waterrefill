@@ -15,7 +15,7 @@ from .models import CustomUser # Import your models
 from orders.models import Order , OrderDetails
 from payments.models import Payment
 from settings.models import StoreSettings
-from django.db.models import Sum, Min
+from django.db.models import Sum, Min ,Q ,F
 from django.db.models.functions import TruncMonth, TruncDay
 import locale
 from datetime import datetime
@@ -210,14 +210,27 @@ class CustomAdmin(admin.AdminSite):
             if product.stock_alert_level not in [None, 0]
         ]
         # pass active products to the template
-        formatted_products = [
-            {
-                "id": product.id,
-                "name": product.name,
-                "stock": product.stock,
-            }
-            for product in Product.objects.filter(status=1)
-        ]
+        now = timezone.now()
+        first_day = now.replace(day=1)
+        last_day = now.replace(day=1, month=now.month + 1) if now.month < 12 else now.replace(day=1, month=1, year=now.year + 1)
+
+        formatted_products = Product.objects.filter(status=1).annotate(
+            total_sold=Sum(
+                'order_details__quantity',
+                filter=Q(order_details__order__status=4) & Q(order_details__order__created_at__gte=first_day, order_details__order__created_at__lt=last_day)
+            ),
+            total_sales=Sum(
+                F('order_details__quantity') * F('order_details__current_product_price'),  # quantity * current_product_price
+                filter=Q(order_details__order__status=4) & Q(order_details__order__created_at__gte=first_day, order_details__order__created_at__lt=last_day)
+            ),
+            total_payments=Sum(
+                'order_details__order__payment__amount',
+                filter=Q(order_details__order__payment__status=1) & Q(order_details__order__payment__created_at__gte=first_day, order_details__order__payment__created_at__lt=last_day)
+            )
+        ).values("id", "name", "stock", "total_sold", "total_sales", "total_payments")
+
+        # Convert QuerySet to list (optional)
+        formatted_products = list(formatted_products)
         extra_context["critical_products"] = formatted_critical_products
         extra_context["product_forecasts"] = []
         extra_context["total_revenue"] = locale.currency(total_revenue, grouping=True)

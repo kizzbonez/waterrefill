@@ -55,7 +55,7 @@ class OrderDetailsInline(admin.TabularInline):
     model = OrderDetails
     extra = 1
     readonly_fields = ('total_price',)
-    fields = ('product', 'quantity', 'total_price')
+    fields = ('product', 'quantity', 'total_price','current_product_price')
     form = OrderDetailsForm  # Apply the custom form
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "product":
@@ -63,9 +63,14 @@ class OrderDetailsInline(admin.TabularInline):
             kwargs["widget"] = forms.Select(attrs={
                 "class": "field-product",
                 "data-product-prices": json.dumps({p.id: float(p.price) for p in products})  # Inject prices
-            })
+            })     
+ 
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
-    
+    class Media:
+        css = {
+            "all": ("admin/css/custom.css",)  # Add custom CSS file
+        }
+
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
