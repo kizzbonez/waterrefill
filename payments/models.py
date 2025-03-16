@@ -45,9 +45,7 @@ class Payment(models.Model):
             total_order_amount = self.order_id.get_total_amount()
             previous_payments = Payment.objects.filter(order_id=self.order_id).aggregate(Sum('amount'))['amount__sum'] or 0
             remaining_balance = total_order_amount - previous_payments
-
-            if self.amount > remaining_balance:
-                raise ValidationError(f"Cannot save. Payment exceeds remaining balance. Remaining: {remaining_balance:.2f}")
+           
 
         super().save(*args, **kwargs)
 def __str__(self):
