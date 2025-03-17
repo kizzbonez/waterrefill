@@ -6,9 +6,13 @@ document.addEventListener("DOMContentLoaded", function () {
         updateTotalPrice()
         $(".field-product select").each(function () {
             if ($(this).val()) {  // Check if the select has a value
-                $(this).prop("disabled", true);  // Disable it
+                var selectedText = $(this).find("option:selected").text(); // Get the selected option text
+                $(this).addClass("d-none"); // Hide the select field
+                $(this).siblings(".select2-container").addClass("d-none"); // Hide the select2 field
+                $(this).after('<span class="readonly-label">' + selectedText + '</span>'); // Add a label with the value
             }
         });
+        
         function updateTotalPrice() {
             _total_price = $('#total-price');
             field_total_price = $('.field-total_price p');

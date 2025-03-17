@@ -3,3 +3,11 @@
 #order_details-group table td:nth-child(5) { /* Targets the third <td> */
     display: none !important;
 }
+.readonly-label {
+    display: inline-block;
+    padding: 6px 10px;
+    background-color: #e9ecef;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    color: #495057;
+}
