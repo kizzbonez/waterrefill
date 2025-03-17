@@ -234,7 +234,7 @@ class CustomAdmin(admin.AdminSite):
         extra_context["critical_products"] = formatted_critical_products
         extra_context["product_forecasts"] = []
         extra_context["total_revenue"] = locale.currency(total_revenue, grouping=True)
-        extra_context["total_users"] = CustomUser.objects.count()
+        extra_context["total_users"] = CustomUser.objects.filter(user_type=0).count()
         extra_context["total_orders"] = Order.objects.count()
         extra_context["pending_orders"] = Order.objects.filter(status=0).count()
         extra_context["sales_labels"] =  sales_labels

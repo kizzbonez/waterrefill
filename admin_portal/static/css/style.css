@@ -212,3 +212,21 @@ body, html {
     color: #0056b3;
     text-decoration: underline;
 }
+.password-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-container input {
+  width: 100%;
+  padding-right: 30px;
+}
+
+.eye-icon {
+  position: absolute;
+  right: 10px;
+  cursor: pointer;
+  font-size: 18px;
+  user-select: none;
+}

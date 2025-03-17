@@ -6,6 +6,7 @@
     <title>Login | AquaZen Water Refilling Station</title>
     {% load static %}  <!-- ✅ Load static tag here -->
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 </head>
 <body>
     <div class="background">
@@ -22,7 +23,10 @@
             <form method="post">
                 {% csrf_token %}
                 <input type="text" name="username" placeholder="Username" required>
-                <input type="password" name="password" placeholder="Password" required>
+                <div class="password-container">
+                    <input type="password" name="password" id="password" placeholder="Password" required>
+                    <i class="eye-icon fa fa-eye" id="togglePassword"></i> <!-- Unicode eye icon -->
+                </div>
                 {% if form.errors %}
                     <p class="error-message">Invalid username or password. Please try again.</p>
                 {% endif %}

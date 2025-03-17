@@ -84,6 +84,7 @@ class PaymentAdmin(admin.ModelAdmin):
     list_filter = (
         ('created_at', DateRangeFilter),
         'payment_method',
+        'status',
         'amount'
     ) 
     ordering = ('-created_at', '-order_id', 'status', 'amount')  

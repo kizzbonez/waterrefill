@@ -76,7 +76,7 @@ class OrderDetailsInline(admin.TabularInline):
 class OrderAdmin(admin.ModelAdmin):
     list_display = ('id', 'get_assigned_to_name', 'get_customer_name', 'created_at', 'get_total_price', 'status', 'delivery_datetime')
     search_fields = ('assigned_to__first_name', 'assigned_to__last_name', 'customer__first_name', 'customer__last_name')
-    list_filter = ( ('created_at', DateRangeFilter),'customer', 'assigned_to')
+    list_filter = ( ('created_at', DateRangeFilter),'customer','status', 'assigned_to')
     form = OrderAdminForm
     readonly_fields = ('created_at',)
     inlines = [OrderDetailsInline]
