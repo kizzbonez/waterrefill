@@ -61,9 +61,11 @@ INSTALLED_APPS = [
     'products',
     'orders',
     'payments',
+    'reports',
     'settings',
     'django_celery_beat',
     'rangefilter',
+   
 
 ]
 
@@ -195,7 +197,13 @@ JAZZMIN_SETTINGS = {
         "orders.OrderDetails",
         "payments.Payment",
         "settings.StoreSettings",
-        "auth.Group"    # Hides the separate "Products" section
+        "auth.Group",    # Hides the separate "Products" section
+        "django_celery_beat.periodictask",
+        "django_celery_beat.clockedschedule",
+        "django_celery_beat.crontabschedule",
+        "django_celery_beat.intervalschedule",
+        "django_celery_beat.solarschedule",
+        "reports.Reports",
     ],
 
     "navigation_expanded": True,
@@ -216,6 +224,7 @@ JAZZMIN_SETTINGS = {
             {"name": "Orders", "url": "/admin/orders/order/", "icon": "fas fa-shopping-cart", "app": "orders"},
             {"name": "Payments", "url": "/admin/payments/payment/", "icon": "fas fa-money-bill-wave", "app": "payments"},
             {"name": "Settings", "url": "/admin/settings/storesettings/1/change/", "icon": "fas fa-cogs", "app": "settings"},
+            {"name": "Reports", "url": "/admin/reports/reports/", "icon": "fas fa-list", "app": "settings"},
         ]
     },
 }

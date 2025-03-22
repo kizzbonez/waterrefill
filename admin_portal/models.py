@@ -1,9 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-from django.utils.crypto import get_random_string
 from django.utils.timezone import now
 from datetime import timedelta
-
+import random
 class CustomUser(AbstractUser):
     USER_TYPE_CHOICES = (
         (0, 'Client'),
@@ -27,7 +26,7 @@ class CustomUser(AbstractUser):
 
     def set_reset_token(self):
         """ Generate a reset token valid for 1 hour """
-        self.reset_token = get_random_string(length=32)  # Generate unique token
+        self.reset_token =  random.randint(100000, 999999) # Generate unique token
         self.reset_token_expiry = now() + timedelta(hours=1)  # Token expires in 1 hour
         self.save()
 

@@ -9,6 +9,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('admin-api/', include('admin_portal.urls')),  # ✅ Register the Admin AP
     path("accounts/", include("django.contrib.auth.urls")),  # 
+    path("", include("reports.urls")),
 ]
 
 # Enable media files serving in development

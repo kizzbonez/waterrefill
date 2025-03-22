@@ -1,0 +1,84 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+    <div class="module">
+        <h2>Reports</h2>
+        <p>Generate reports and analyze your data here.</p>
+
+        <!-- Date Range Picker for Sales Report -->
+        <form method="GET" action="{% url 'download_sales_report' %}">
+            <label for="start_date"><b>Start Date:</b></label>
+            <input type="date" id="start_date" name="start_date" required>
+            
+            <label for="end_date"><b>End Date:</b></label>
+            <input type="date" id="end_date" name="end_date" required>
+        </form>
+
+        <br>
+
+        <table class="table table-bordered">
+            <tr>
+                <th>Report Name</th>
+                <th>Actions</th>
+            </tr>
+            <tr>
+                <td>Sales Report</td>
+                <td>
+                    <a href="#" onclick="downloadReport()">Download</a>
+                </td>
+            </tr>
+            <tr>
+                <td>Inventory Report(Current Date Only)</td>
+                <td><a href="{% url 'download_inventory_report' %}">Download</a></td>
+            </tr>
+            <tr>
+                <td>Top 10 Customers</td>
+                <td><a href="#" onclick="downloadTopCustomers()">Download</a></td>
+            </tr>
+            <tr>
+                <td>Top Products</td>
+                <td><a href="#" onclick="downloadTopProducts()">Download</a></td>
+            </tr>
+        </table>
+    </div>
+
+    <script>
+        function downloadReport() {
+            const startDate = document.getElementById("start_date").value;
+            const endDate = document.getElementById("end_date").value;
+
+            if (!startDate || !endDate) {
+                alert("Please select a start and end date.");
+                return;
+            }
+
+            const url = `/download-sales-report/?start_date=${startDate}&end_date=${endDate}`;
+            window.location.href = url;
+        }
+        function downloadTopCustomers() {
+            const startDate = document.getElementById("start_date").value;
+            const endDate = document.getElementById("end_date").value;
+
+            if (!startDate || !endDate) {
+                alert("Please select a start and end date.");
+                return;
+            }
+
+            const url = `/download-top-customers-report/?start_date=${startDate}&end_date=${endDate}`;
+            window.location.href = url;
+        }
+
+        function downloadTopProducts() {
+            const startDate = document.getElementById("start_date").value;
+            const endDate = document.getElementById("end_date").value;
+
+            if (!startDate || !endDate) {
+                alert("Please select a start and end date.");
+                return;
+            }
+
+            const url = `/download-top-products-report/?start_date=${startDate}&end_date=${endDate}`;
+            window.location.href = url;
+        }
+    </script>
+{% endblock %}

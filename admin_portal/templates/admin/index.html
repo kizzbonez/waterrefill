@@ -188,7 +188,6 @@
                                         <th>Product Name</th>
                                         <th>Stocks</th>
                                         <th>QTY</th>
-                                        <th>Sales</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -198,7 +197,6 @@
                                             <td>{{ product.name }}</td>
                                             <td>{{ product.stock }}</td>
                                             <td>{{product.total_sold|floatformat:0}}</td>
-                                            <td>${{product.total_sales |floatformat:2 }}</td>
 
                                         </tr>
                                     {% empty %}

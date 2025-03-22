@@ -15,6 +15,8 @@ import openpyxl
 from django.http import HttpResponse
 from rangefilter.filters import DateRangeFilter, DateTimeRangeFilter
 from payments.models import Payment
+from django.contrib.admin import SimpleListFilter
+from datetime import datetime, timedelta
 class OrderDetailsForm(forms.ModelForm):
     class Meta:
         model = OrderDetails
@@ -70,13 +72,43 @@ class OrderDetailsInline(admin.TabularInline):
         css = {
             "all": ("admin/css/custom.css",)  # Add custom CSS file
         }
+class CustomerFilter(SimpleListFilter):
+    title = _('Customer')
+    parameter_name = 'customer'
 
+    def lookups(self, request, model_admin):
+        customers = User.objects.filter(user_type=0)
+        return [(customer.id, customer.get_full_name() or customer.last_name) for customer in customers]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(customer__id=self.value())
+        return queryset
+
+# Custom filter for Assigned Users (user_type = 2)
+class AssignedToFilter(SimpleListFilter):
+    title = _('Assigned To')
+    parameter_name = 'assigned_to'
+
+    def lookups(self, request, model_admin):
+        assigned_users = User.objects.filter(user_type=1)
+        return [(user.id, user.get_full_name() or user.last_name) for user in assigned_users]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(assigned_to__id=self.value())
+        return queryset
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
     list_display = ('id', 'get_assigned_to_name', 'get_customer_name', 'created_at', 'get_total_price', 'status', 'delivery_datetime')
     search_fields = ('assigned_to__first_name', 'assigned_to__last_name', 'customer__first_name', 'customer__last_name')
-    list_filter = ( ('created_at', DateRangeFilter),'customer','status', 'assigned_to')
+    list_filter = (
+        ('created_at', DateRangeFilter),  # Date range filter
+        CustomerFilter,  # Custom filter for Customers
+        'status',  # Regular status filter
+        AssignedToFilter,  # Custom filter for Assigned Users
+    )
     form = OrderAdminForm
     readonly_fields = ('created_at',)
     inlines = [OrderDetailsInline]
@@ -163,20 +195,45 @@ class OrderAdmin(admin.ModelAdmin):
 
     def get_assigned_to_name(self, obj):
         """Display assigned user's full name in 'Last, First' format."""
+        #filter assigned_to only the rider with user_type=1
+
         return f"{obj.assigned_to.last_name}, {obj.assigned_to.first_name}" if obj.assigned_to else "No Assigned User"
 
     def get_customer_name(self, obj):
         """Display customer full name in 'Last, First' format."""
+
         return f"{obj.customer.last_name}, {obj.customer.first_name}" if obj.customer else "No Customer"
 
     get_assigned_to_name.short_description = "Assigned To"
     get_customer_name.short_description = "Customer Name"
+class OrderCreatedAtSimpleFilter(admin.SimpleListFilter):
+    title = _('Order Date')
+    parameter_name = 'order_created_at_range'
 
+    def lookups(self, request, model_admin):
+        return [
+            ('today', _('Today')),
+            ('past_7_days', _('Past 7 days')),
+            ('this_month', _('This month')),
+            ('this_year', _('This year')),
+        ]
+
+    def queryset(self, request, queryset):
+        today = datetime.today().date()
+        if self.value() == 'today':
+            return queryset.filter(order__created_at__date=today)
+        elif self.value() == 'past_7_days':
+            return queryset.filter(order__created_at__date__gte=today - timedelta(days=7))
+        elif self.value() == 'this_month':
+            return queryset.filter(order__created_at__month=today.month, order__created_at__year=today.year)
+        elif self.value() == 'this_year':
+            return queryset.filter(order__created_at__year=today.year)
+        return queryset
 @admin.register(OrderDetails)
 class OrderDetailsAdmin(admin.ModelAdmin):
     list_display = ('id', 'order', 'get_products','quantity', 'total_price', 'get_order_created_at')
     list_filter = (
-        ('order__created_at', DateRangeFilter),  # ✅ Add date range filter
+        OrderCreatedAtSimpleFilter,  # ✅ Add date range filter
         'order', 
         'total_price', 
         'product'

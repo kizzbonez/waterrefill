@@ -211,26 +211,47 @@ class CustomAdmin(admin.AdminSite):
         ]
         # pass active products to the template
         now = timezone.now()
-        first_day = now.replace(day=1)
-        last_day = now.replace(day=1, month=now.month + 1) if now.month < 12 else now.replace(day=1, month=1, year=now.year + 1)
 
-        formatted_products = Product.objects.filter(status=1).annotate(
-            total_sold=Sum(
-                'order_details__quantity',
-                filter=Q(order_details__order__status=4) & Q(order_details__order__created_at__gte=first_day, order_details__order__created_at__lt=last_day)
-            ),
-            total_sales=Sum(
-                F('order_details__quantity') * F('order_details__current_product_price'),  # quantity * current_product_price
-                filter=Q(order_details__order__status=4) & Q(order_details__order__created_at__gte=first_day, order_details__order__created_at__lt=last_day)
-            ),
-            total_payments=Sum(
-                'order_details__order__payment__amount',
-                filter=Q(order_details__order__payment__status=1) & Q(order_details__order__payment__created_at__gte=first_day, order_details__order__payment__created_at__lt=last_day)
+        # First and last day of current month
+        first_day =  current_month_start 
+        last_day = next_month_start
+        # Get all active products
+        products = Product.objects.all()
+        formatted_products = []
+
+        for product in products:
+            # Total quantity sold for this product this month
+            sold_data = OrderDetails.objects.filter(
+                product=product,
+                order__status=4,
+                order__created_at__gte=first_day,
+                order__created_at__lt=last_day
             )
-        ).values("id", "name", "stock", "total_sold", "total_sales", "total_payments")
 
-        # Convert QuerySet to list (optional)
-        formatted_products = list(formatted_products)
+            total_sold = sold_data.aggregate(qty=Sum("quantity"))["qty"] or 0
+
+            total_sales = sold_data.aggregate(
+                total=Sum(F("quantity") * F("current_product_price"))
+            )["total"] or 0
+
+            # Get payments related to orders containing this product
+            order_ids = sold_data.values_list("order_id", flat=True).distinct()
+
+            total_payments = Payment.objects.filter(
+                order_id__in=order_ids,
+                status=1,  # completed
+                created_at__gte=first_day,
+                created_at__lt=last_day
+            ).aggregate(paid=Sum("amount"))["paid"] or 0
+
+            formatted_products.append({
+                "id": product.id,
+                "name": product.name ,
+                "stock": product.stock,
+                "total_sold": float(total_sold),
+                "total_sales": float(total_sales),
+                "total_payments": float(  total_payments ),
+            })
         extra_context["critical_products"] = formatted_critical_products
         extra_context["product_forecasts"] = []
         extra_context["total_revenue"] = locale.currency(total_revenue, grouping=True)

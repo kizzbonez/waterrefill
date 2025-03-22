@@ -11,12 +11,6 @@ class Payment(models.Model):
     (2, 'Failed'),        # Payment attempt was unsuccessful
     (3, 'Cancelled'),     # Payment was canceled by the user or system
     (4, 'Refunded'),      # Payment has been refunded to the customer
-    (5, 'Chargeback'),    # Payment was disputed and reversed
-    (6, 'On Hold'),       # Payment is temporarily held for verification
-    (7, 'Processing'),    # Payment is being processed (e.g., bank transfer)
-    (8, 'Partially Paid'),# A part of the payment has been received
-    (9, 'Awaiting Payment'), # Payment is expected but not received yet
-    (10, 'Authorized'),   # Payment is authorized but not yet captured
     )
 
     
