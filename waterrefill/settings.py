@@ -223,8 +223,8 @@ JAZZMIN_SETTINGS = {
             {"name": "Manage Products", "url": "/admin/products/product/", "icon": "fas fa-box-open", "app": "products"},
             {"name": "Orders", "url": "/admin/orders/order/", "icon": "fas fa-shopping-cart", "app": "orders"},
             {"name": "Payments", "url": "/admin/payments/payment/", "icon": "fas fa-money-bill-wave", "app": "payments"},
+            {"name": "Reports", "url": "/admin/reports/reports/", "icon": "fas fa-list", "app": "reports"},
             {"name": "Settings", "url": "/admin/settings/storesettings/1/change/", "icon": "fas fa-cogs", "app": "settings"},
-            {"name": "Reports", "url": "/admin/reports/reports/", "icon": "fas fa-list", "app": "settings"},
         ]
     },
 }
