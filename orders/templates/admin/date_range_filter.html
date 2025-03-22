@@ -1,0 +1,9 @@
+<p style="color: red;">This is a custom filter template!</p>
+<div>
+    <label>From date</label>
+    <input type="date" name="start_date" value="{{ request.GET.start_date|default_if_none:'' }}">
+</div>
+<div style="margin-top: 4px;">
+    <label>To date</label>
+    <input type="date" name="end_date" value="{{ request.GET.end_date|default_if_none:'' }}">
+</div>

@@ -4,7 +4,10 @@ from django.contrib import admin
 from django.urls import path, include
 from django.contrib.auth import views as auth_views
 from admin_portal.views import CustomLoginView
+from django.shortcuts import redirect
 urlpatterns = [
+    path('accounts/login/', lambda request: redirect('/admin/login/')),
+    path('accounts/profile/', lambda request: redirect('/admin/login/')),
     path('api/v1/', include('api.urls')),  # Include API URLs
     path('admin/', admin.site.urls),
     path('admin-api/', include('admin_portal.urls')),  # ✅ Register the Admin AP
