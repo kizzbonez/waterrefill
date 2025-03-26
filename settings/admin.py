@@ -19,7 +19,7 @@ import os
 class StoreSettingsAdmin(admin.ModelAdmin):
     list_display = ("store_name", "timezone", "favicon_preview")
     change_form_template = "admin/settings/change_form.html"  # Set custom template
-
+    exclude = ("logo","currency","login_header_message","favicon","gmap_api_key","firebase_api_key","firebase_auth_domain","timezone")
     def favicon_preview(self, obj):
         """Show favicon preview in Django Admin"""
         if obj.favicon:

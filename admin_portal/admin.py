@@ -319,79 +319,138 @@ class CustomUserForm(forms.ModelForm):
         store_longitude = StoreSettings.objects.first().store_longitude
         settings = StoreSettings.objects.first()
         return mark_safe(f"""
-            <script>
-                function initMap() {{
-                    var latInput = document.getElementById("id_lat");
-                    var lngInput = document.getElementById("id_long");
-                    var distanceText = document.getElementById("distance_km"); // ✅ Distance display
+    <script>
+        function initMap() {{
+            var latInput = document.getElementById("id_lat");
+            var lngInput = document.getElementById("id_long");
+            var addressInput = document.getElementById("id_address"); // Address field
+            var distanceText = document.getElementById("distance_km"); // Distance display
+            
+            // Default user location (Manila)
+            var defaultLat = parseFloat(latInput.value) || 14.5995;
+            var defaultLng = parseFloat(lngInput.value) || 120.9842;
+            var userLocation = {{ lat: defaultLat, lng: defaultLng }};
+            
+            // Fixed Start Location 
+            var startPoint = {{ lat: {store_latitude}, lng: {store_longitude} }};
 
-                    // ✅ Default user location (Manila)
-                    var defaultLat = parseFloat(latInput.value) || 14.5995;
-                    var defaultLng = parseFloat(lngInput.value) || 120.9842;
-                    var userLocation = {{ lat: defaultLat, lng: defaultLng }};
+            // Initialize the map
+            var map = new google.maps.Map(document.getElementById('map'), {{
+                zoom: 12,
+                center: userLocation
+            }});
 
-                    // ✅ Fixed Start Location 
-                    var startPoint = {{ lat: {store_latitude}, lng: {store_longitude} }};
+            // Initialize the marker
+            var marker = new google.maps.Marker({{
+                position: userLocation,
+                map: map,
+                draggable: true
+            }});
 
-                    var map = new google.maps.Map(document.getElementById('map'), {{
-                        zoom: 12,
-                        center: userLocation
-                    }});
+            // Initialize Directions Service and Renderer
+            var directionsService = new google.maps.DirectionsService();
+            var directionsRenderer = new google.maps.DirectionsRenderer({{
+                map: map
+            }});
 
-                    var marker = new google.maps.Marker({{
-                        position: userLocation,
-                        map: map,
-                        draggable: true
-                    }});
-
-                    var service = new google.maps.DistanceMatrixService();
-                    var directionsService = new google.maps.DirectionsService();
-                    var directionsRenderer = new google.maps.DirectionsRenderer({{
-                        map: map
-                    }});
-
-                    function calculateRoute(destination) {{
-                        directionsService.route(
-                            {{
-                                origin: startPoint,
-                                destination: destination,
-                                travelMode: 'DRIVING',
-                            }},
-                            function(response, status) {{
-                                if (status === 'OK') {{
-                                    directionsRenderer.setDirections(response);
-                                    var distance = response.routes[0].legs[0].distance.text;
-                                    distanceText.innerHTML = `🚗 Driving Distance: `+distance;
-                                }} else {{
-                                    distanceText.innerHTML = "🚗 Route Not Available";
-                                }}
-                            }}
-                        );
+            // Function to calculate route
+            function calculateRoute(destination) {{
+                directionsService.route(
+                    {{
+                        origin: startPoint,
+                        destination: destination,
+                        travelMode: 'DRIVING',
+                    }},
+                    function(response, status) {{
+                        if (status === 'OK') {{
+                            directionsRenderer.setDirections(response);
+                            var distance = response.routes[0].legs[0].distance.text;
+                            distanceText.innerHTML = `🚗 Driving Distance: ` + distance;
+                        }} else {{
+                            distanceText.innerHTML = "🚗 Route Not Available";
+                        }}
                     }}
+                );
+            }}
 
-                    // ✅ Calculate initial route
-                    calculateRoute(userLocation);
+            // Initialize Google Places Autocomplete
+            var autocomplete = new google.maps.places.Autocomplete(addressInput);
+            autocomplete.bindTo("bounds", map);
 
-                    google.maps.event.addListener(marker, 'dragend', function(event) {{
-                        var newLat = event.latLng.lat();
-                        var newLng = event.latLng.lng();
-                        latInput.value = newLat;
-                        lngInput.value = newLng;
-
-                        var newLocation = {{ lat: newLat, lng: newLng }};
-                        calculateRoute(newLocation);
-                    }});
+            // Listen for place selection
+            autocomplete.addListener("place_changed", function() {{
+                var place = autocomplete.getPlace();
+                if (!place.geometry) {{
+                    console.error("No geometry found for the selected place.");
+                    return;
                 }}
-            </script>
+                
+                // Get the selected place's location
+                var newLocation = new google.maps.LatLng(
+                    place.geometry.location.lat(),
+                    place.geometry.location.lng()
+                );
+                
+                // Update latitude and longitude inputs
+                latInput.value = newLocation.lat();
+                lngInput.value = newLocation.lng();
+                
+                // Move the marker to the new location
+                marker.setPosition(newLocation);
+                
+                // Calculate route to the new location
+                calculateRoute(newLocation);
+            }});
 
-            <script src="https://maps.googleapis.com/maps/api/js?key={settings.gmap_api_key}&callback=initMap" async defer></script>
+            // Listen for marker drag events
+            google.maps.event.addListener(marker, 'dragend', function(event) {{
+                var newLat = event.latLng.lat();
+                var newLng = event.latLng.lng();
+                latInput.value = newLat;
+                lngInput.value = newLng;
 
-            <!-- ✅ Display Distance -->
-            <div id="distance_km" style="margin-top: 10px; font-weight: bold;"></div>
+                var newLocation = {{ lat: newLat, lng: newLng }};
+                calculateRoute(newLocation);
+            }});
 
-            <!-- ✅ Google Map Container -->
-            <div id="map" style="height: 400px;"></div>
-        """)
+            // zoom function
+            var zoomButton = document.createElement("zoombutton");
+            zoomButton.textContent = "Zoom to Location";
+            zoomButton.style.marginTop = "10px";
+            zoomButton.style.padding = "5px 10px";
+            zoomButton.style.backgroundColor = "#007bff";
+            zoomButton.style.color = "#fff";
+            zoomButton.style.border = "none";
+            zoomButton.style.borderRadius = "5px";
+            zoomButton.style.cursor = "pointer";
+
+            // Add the button to the map container
+            document.getElementById("map").parentNode.insertBefore(zoomButton, document.getElementById("distance_km"));
+
+            // Add click event listener to the button
+            zoomButton.addEventListener("click", function() {{
+                var lat = parseFloat(latInput.value);
+                var lng = parseFloat(lngInput.value);
+
+                if (!isNaN(lat) && !isNaN(lng)) {{
+                    var newLocation = new google.maps.LatLng(lat, lng);
+                    map.setCenter(newLocation);
+                    map.setZoom(15); // Adjust zoom level as needed
+                }} else {{
+                    alert("Invalid latitude or longitude values.");
+                }}
+            }});
+        }}
+    </script>
+
+    <script src="https://maps.googleapis.com/maps/api/js?key={settings.gmap_api_key}&libraries=places&callback=initMap" async defer></script>
+
+    <!-- Display Distance -->
+    <div id="distance_km" style="margin-top: 10px; font-weight: bold;"></div>
+
+    <!-- Google Map Container -->
+    <div id="map" style="height: 400px;"></div>
+""")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

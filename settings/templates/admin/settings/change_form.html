@@ -2,18 +2,7 @@
 
 {% block submit_buttons_bottom %}
     {{ block.super }}
-    <div class="object-tools">
-        <a href="{% url 'admin:clear_cache' %}" class="btn btn-block btn-danger btn-md mt-3">
-            <i class="fas fa-broom"></i> Clear Cache
-        </a>
-    </div>
-    
-    <div class="object-tools">
-        <a href="{% url 'admin:send_test_notification' %}" class="btn btn-block   btn-success btn-md mt-3">
-            <i class="fas fa-bell"></i> Send Test Notification
-        </a>
-    </div>
-    
+
     <div class="object-tools">
         <a href="{% url 'admin:backup_database' %}" class="btn btn-block btn-warning btn-md mt-3">
             <i class="fas fa-download"></i> Backup Database
