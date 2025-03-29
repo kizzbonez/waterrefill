@@ -47,7 +47,7 @@ class PaymentAdminForm(forms.ModelForm):
         model = Payment
         fields = '__all__'
     class Media:
-        js = ('admin/js/balance.js',)  # Load the JavaScript file
+        js = ('admin/js/balance_1.js',)  # Load the JavaScript file
 
     def clean_order_id(self):
         """Ensure that Order ID is required"""
