@@ -2,6 +2,42 @@ document.addEventListener("DOMContentLoaded", function () {
     // Ensure this script runs after Select2 is initialized
     jQuery(document).ready(function ($) {
 
+        document.getElementById('order_form').addEventListener('submit', function(e) {
+            e.preventDefault(); // Prevent default submit first
+        
+            let quantities = $('.field-quantity');
+            let hasZero = false;
+            let allProductsValid = true;
+               // Loop through all product selects
+                // $('[name^="order_details-"][name$="-product"]').each(function(index, element) {
+                //     const val = $(element).val();
+                //     if (!val || val === "") {
+                //         alert(`Please select a product in row ${index + 1}`);
+                //         allProductsValid = false;
+                //         return false; // Break loop early
+                //     }
+                // });
+                // if (!allProductsValid) {
+                //     return;
+                // }
+            quantities.each(function () {
+                let value = parseFloat($(this).val());
+                if (value === 0) {
+                    hasZero = true;
+                    return false; // Exit the loop early
+                }
+            });
+        
+            if (hasZero) {
+                alert('Quantity cannot be 0.');
+                return;
+            }
+        
+            // All quantities are valid, submit the form
+            this.submit();
+        });
+        
+
         $('.add-row').prepend('<td><span id="total-price" style="font-weight:bold">Total Price:</span></td>');
         updateTotalPrice()
         $(".field-product select").each(function () {
