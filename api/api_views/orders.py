@@ -17,7 +17,7 @@ class OrderListCreateView(APIView):
         user = request.user
     
         orders = Order.objects.filter(
-            (Q(customer=user) | Q(assigned_to=user)) & ~Q(status=9)
+            (Q(customer=user) | Q(assigned_to=user)) & ~Q(status=8)
         )
        
 
