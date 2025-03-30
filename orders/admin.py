@@ -19,6 +19,7 @@ from django.contrib.admin import SimpleListFilter
 from datetime import datetime, timedelta
 from django.shortcuts import render, redirect
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 class OrderDetailsForm(forms.ModelForm):
     class Meta:
         model = OrderDetails
@@ -46,19 +47,11 @@ class OrderAdminForm(forms.ModelForm):
         widget=forms.Select,
         required=True
     )
-    
-    class Meta:
-        model = Order
-        fields = '__all__'
-        widgets = {
-            'delivery_datetime': forms.DateTimeInput(
-                attrs={
-                    'type': 'datetime-local',
-                    'min': timezone.now().strftime('%Y-%m-%dT%H:%M'),  # prevent past times
-                    'class': 'form-control'
-                }
-            ),
-        }
+    def clean_delivery_datetime(self):
+        dt = self.cleaned_data.get("delivery_datetime")
+        if dt and dt < timezone.now():
+            raise ValidationError("Delivery datetime cannot be in the past.")
+        return dt
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
