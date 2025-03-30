@@ -4,7 +4,7 @@ document.addEventListener("DOMContentLoaded", function () {
         
        $(document).find('.field-get_assigned_to_name').each(function(){
               let parent = $(this).parents('tr');
-              if($(this).text()=="No Assigned User"){
+              if($(this).text()=="No Assigned User" || $(this).text()=="Unassigned, Order"){
                   parent.addClass('bg-red');
               }
 

@@ -142,7 +142,7 @@ class OrderAdmin(admin.ModelAdmin):
     ordering = ('-created_at', 'status', 'delivery_datetime')
     actions = ["export_to_excel","assign_rider_action"]
     class Media:
-        js = ('admin/js/order_admin.js',)  # Load the JavaScript file
+        js = ('admin/js/order_admin_1.js',)  # Load the JavaScript file
     def assign_rider_action(self, request, queryset):
         if "apply" in request.POST:
             form = AssignRiderForm(request.POST)
