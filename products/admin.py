@@ -25,6 +25,11 @@ class ProductAdminForm(forms.ModelForm):
         if price <= 0:
             raise forms.ValidationError(f"Price cannot be less than 0")
         return price
+    def clean_stock(self):
+        stock = self.cleaned_data.get("stock")
+        if stock <= 0:
+            raise forms.ValidationError(f"Stock cannot be less than 0")
+        return stock
 @admin.register(Product)
 
 class ProductAdmin(admin.ModelAdmin):
