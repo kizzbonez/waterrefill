@@ -1,0 +1,16 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+
+
+  <div class="container">
+    <h2>{{ title }}</h2>
+  <form method="post">{% csrf_token %}
+    {{ form.as_p }}
+    {% for obj in queryset %}
+      <input type="hidden" name="_selected_action" class="form-control" value="{{ obj.pk }}">
+    {% endfor %}
+    <input type="hidden" name="action" value="{{ action }}">
+    <button type="submit" name="apply" class="default form-control">Assign</button>
+  </form>
+  </div>
+{% endblock %}

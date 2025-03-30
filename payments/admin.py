@@ -16,6 +16,21 @@ from orders.models import Order
 from django.db import models
 from rangefilter.filters import DateRangeFilter, DateTimeRangeFilter
 from decimal import Decimal
+from django.contrib.admin import SimpleListFilter
+from admin_portal.models import CustomUser
+from django.contrib.admin.views.main import ChangeList
+class RiderFullNameFilter(SimpleListFilter):
+    title = _('Rider')
+    parameter_name = 'rider'
+
+    def lookups(self, request, model_admin):
+        riders = CustomUser.objects.filter(user_type=1)
+        return [(r.id, f"{r.last_name}, {r.first_name}") for r in riders]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(order_id__assigned_to__id=self.value())
+        return queryset
 class PaymentAdminForm(forms.ModelForm):
     amount_to_pay = forms.CharField(
         required=False, 
@@ -85,10 +100,28 @@ class PaymentAdmin(admin.ModelAdmin):
         ('created_at', DateRangeFilter),
         'payment_method',
         'status',
+        RiderFullNameFilter,
         'amount'
     ) 
     ordering = ('-created_at', '-order_id', 'status', 'amount')  
     actions = ["export_to_excel"]  #  Add the export action
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+
+        # Get the changelist instance
+        response = super().changelist_view(request, extra_context=extra_context)
+        print( response.context_data)
+        try:
+            cl = response.context_data['cl']  # ChangeList instance
+            queryset = cl.queryset
+            total_paid = queryset.aggregate(total=models.Sum('amount'))['total'] or 0
+            extra_context['total_paid'] = common.formatted_amount(total_paid)
+            response.context_data.update(extra_context)
+        except (AttributeError, KeyError):
+            print("Error")
+            pass
+
+        return response
     def has_delete_permission(self, request, obj=None):
         """Disables delete option for all products"""
         return False

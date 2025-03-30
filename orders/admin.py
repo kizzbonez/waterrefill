@@ -17,6 +17,8 @@ from rangefilter.filters import DateRangeFilter, DateTimeRangeFilter
 from payments.models import Payment
 from django.contrib.admin import SimpleListFilter
 from datetime import datetime, timedelta
+from django.shortcuts import render, redirect
+from django.utils import timezone
 class OrderDetailsForm(forms.ModelForm):
     class Meta:
         model = OrderDetails
@@ -29,29 +31,44 @@ class OrderDetailsForm(forms.ModelForm):
 
    
 class OrderAdminForm(forms.ModelForm):
-    """Customizes the 'assigned_to' and 'customer' dropdowns to show full name."""
+    """Customizes the 'assigned_to', 'customer', and 'delivery_datetime' fields."""
+
     assigned_to = forms.ModelChoiceField(
-        queryset=User.objects.all(),
+        queryset=User.objects.filter(user_type=1).order_by('last_name', 'first_name'),
         label="Assigned To",
         widget=forms.Select,
         required=True
     )
 
     customer = forms.ModelChoiceField(
-        queryset=User.objects.all(),
+        queryset=User.objects.filter(user_type=0).order_by('last_name', 'first_name'),
         label="Customer",
         widget=forms.Select,
         required=True
     )
+    
+    class Meta:
+        model = Order
+        fields = '__all__'
+        widgets = {
+            'delivery_datetime': forms.DateTimeInput(
+                attrs={
+                    'type': 'datetime-local',
+                    'min': timezone.now().strftime('%Y-%m-%dT%H:%M'),  # prevent past times
+                    'class': 'form-control'
+                }
+            ),
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.fields['assigned_to'].queryset = User.objects.filter(user_type=1).order_by('last_name', 'first_name')
         self.fields['assigned_to'].label_from_instance = lambda obj: f"{obj.last_name}, {obj.first_name}"
-
-        self.fields['customer'].queryset = User.objects.filter(user_type=0).order_by('last_name', 'first_name')
         self.fields['customer'].label_from_instance = lambda obj: f"{obj.last_name}, {obj.first_name}"
+        if 'status' in self.fields:
+            self.fields['status'].choices = [
+                choice for choice in self.fields['status'].choices if choice[0] != 4
+            ]
 
 class OrderDetailsInline(admin.TabularInline):
     model = OrderDetails
@@ -98,10 +115,20 @@ class AssignedToFilter(SimpleListFilter):
         if self.value():
             return queryset.filter(assigned_to__id=self.value())
         return queryset
+class AssignRiderForm(forms.Form):
+    rider = forms.ModelChoiceField(
+        queryset=User.objects.filter(user_type=1),
+        label="Select Rider",
+        required=True,
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['rider'].label_from_instance = lambda obj: f"{obj.last_name}, {obj.first_name}"
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ('id', 'get_assigned_to_name', 'get_customer_name', 'created_at', 'get_total_price', 'status', 'delivery_datetime')
+    list_display = ('id', 'get_assigned_to_name', 'get_customer_name','get_customer_address', 'created_at', 'get_total_price', 'status', 'delivery_datetime')
     search_fields = ('assigned_to__first_name', 'assigned_to__last_name', 'customer__first_name', 'customer__last_name')
     list_filter = (
         ('created_at', DateRangeFilter),  # Date range filter
@@ -113,14 +140,36 @@ class OrderAdmin(admin.ModelAdmin):
     readonly_fields = ('created_at',)
     inlines = [OrderDetailsInline]
     ordering = ('-created_at', 'status', 'delivery_datetime')
-    actions = ["export_to_excel"]
+    actions = ["export_to_excel","assign_rider_action"]
+    class Media:
+        js = ('admin/js/order_admin.js',)  # Load the JavaScript file
+    def assign_rider_action(self, request, queryset):
+        if "apply" in request.POST:
+            form = AssignRiderForm(request.POST)
+            if form.is_valid():
+                rider = form.cleaned_data["rider"]
+                count = queryset.update(assigned_to=rider)
+                self.message_user(request, f"✅ Successfully assigned {rider.get_full_name()} to {count} orders.")
+                return redirect(request.get_full_path())  # Go back to changelist
+        else:
+            form = AssignRiderForm()
+
+        return render(request, "admin/assign_rider_form.html", {
+            "form": form,
+            "queryset": queryset,
+            "action": "assign_rider_action",
+            "title": "Assign Rider to Selected Orders",
+        })
+
+    assign_rider_action.short_description = "Assign selected Orders to a Rider"
+
     def has_delete_permission(self, request, obj=None):
         """Disables delete option for all products"""
         if obj is None:
          return False  # Prevent deletion if no specific object is provided
         order_id = obj.id
         # Check if the product is in any order
-        if Payment.objects.filter(order_id=order_id).exists() :
+        if Payment.objects.filter(order_id=order_id).exists() or obj.status == 4  or obj.status == 8 :
             return False
         return True
     def has_change_permission(self, request, obj=None):
@@ -129,7 +178,7 @@ class OrderAdmin(admin.ModelAdmin):
          return False  # Prevent changes if no specific object is provided
         order_id = obj.id
         # Check if the product is in any order
-        if Payment.objects.filter(order_id=order_id).exists()  and obj.status == 4:
+        if (obj.status == 4  or obj.status == 8):
             return False
         return True
     def export_to_excel(self, request, queryset):
@@ -139,7 +188,7 @@ class OrderAdmin(admin.ModelAdmin):
         ws.title = "Orders Data"
 
         # ✅ Update headers to match Order model fields
-        headers = ["Order ID", "Assigned To", "Customer", "Created At", "Total Price", "Status", "Delivery Datetime"]
+        headers = ["Order ID", "Assigned To", "Customer","Address", "Created At", "Total Price", "Status", "Delivery Datetime"]
         ws.append(headers)
 
         for order in queryset:
@@ -147,6 +196,7 @@ class OrderAdmin(admin.ModelAdmin):
                 order.id,
                 order.assigned_to.get_full_name() if order.assigned_to else "N/A",
                 order.customer.get_full_name() if order.customer else "N/A",
+                order.customer.address if order.customer.address else "N/A",
                 order.created_at.strftime("%Y-%m-%d %H:%M:%S"),  # Format date properly
                 order.get_total_amount(),  # Calls method to get total price
                 order.get_status_display(),  # Convert status integer to text
@@ -172,7 +222,7 @@ class OrderAdmin(admin.ModelAdmin):
         super().save_model(request, obj, form, change)  # Save the model first
 
         # ✅ Deduct stock if status is changed to Delivered
-        if obj.status == 4 and previous_status != 4:  # Only deduct if it was NOT previously delivered
+        if (obj.status == 4 and previous_status != 4) or (obj.status == 8 and previous_status != 8):  # Only deduct if it was NOT previously delivered
             with transaction.atomic():
                 for order_detail in OrderDetails.objects.filter(order=obj):
                     product = order_detail.product
@@ -203,9 +253,14 @@ class OrderAdmin(admin.ModelAdmin):
         """Display customer full name in 'Last, First' format."""
 
         return f"{obj.customer.last_name}, {obj.customer.first_name}" if obj.customer else "No Customer"
+    def get_customer_address(self, obj):
+        """Display customer full name in 'Last, First' format."""
+
+        return f"{obj.customer.address}" if obj.customer else "No Address"
 
     get_assigned_to_name.short_description = "Assigned To"
     get_customer_name.short_description = "Customer Name"
+    get_customer_address.short_description = "Customer Address"
 class OrderCreatedAtSimpleFilter(admin.SimpleListFilter):
     title = _('Order Date')
     parameter_name = 'order_created_at_range'
@@ -230,6 +285,7 @@ class OrderCreatedAtSimpleFilter(admin.SimpleListFilter):
             return queryset.filter(order__created_at__year=today.year)
         return queryset
 @admin.register(OrderDetails)
+
 class OrderDetailsAdmin(admin.ModelAdmin):
     list_display = ('id', 'order', 'get_products','quantity', 'total_price', 'get_order_created_at')
     list_filter = (

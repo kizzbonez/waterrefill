@@ -11,9 +11,11 @@ class Order(models.Model):
         (2, 'On Hold'),
         (3, 'On the way'),
         (4, 'Delivered'),
+        (8, 'Completed'),
         (5, 'Cancelled By Client'),
         (6, 'Cancelled By Rider'),
         (7, 'Cancelled by Admin'),
+        (9, 'Cancelled - 24hrs Limit Reach'),
     )
     assigned_to = models.ForeignKey(
         'admin_portal.CustomUser', on_delete=models.CASCADE, null=True, blank=True, related_name='assigned_orders'

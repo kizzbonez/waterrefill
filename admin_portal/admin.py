@@ -28,24 +28,27 @@ locale.setlocale(locale.LC_ALL, 'en_PH.UTF-8')
 from django.http import JsonResponse
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
+
+
 class CustomUserCreationForm(UserCreationForm):
     email = forms.EmailField(required=True)
 
     class Meta:
         model = User
         fields = ["username", "email", "password1", "password2"]
-
+    
     def save(self, commit=True):
         user = super().save(commit=False)
         user.email = self.cleaned_data["email"]
         if commit:
             user.save()
         return user
+   
 class CustomAdmin(admin.AdminSite):
     """Custom Admin Dashboard with Jazzmin (Without admin_site)"""
 
     index_template = "admin/index.html"  #  Use custom index template
-
+    
     def sales_forecast(self,sales_data):
               #this is the code for the forecast of sales
         sales_data_past_months = sales_data[:-1]
@@ -546,7 +549,7 @@ class CustomUserAdmin(UserAdmin):
     fieldsets = (
         ("Account Info", {"fields": ("user_type","username",'new_password')}),
         ("Personal info", {"fields": ("first_name", "last_name", "email", "phone_number", "address")}),
-        ("Permissions", {"fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")}),
+        ("Permissions", {"fields": ("is_active", "is_staff", "groups", "user_permissions")}),
         ("Important dates", {"fields": ("last_login", "date_joined")}),
         ("Map", {"fields": ("lat", "long", "google_map")}),
     )

@@ -118,7 +118,7 @@ class OrderDetailView(APIView):
                                 OrderDetails.objects.create(order=order, product=product, quantity=quantity)
 
                         # ✅ Reduce product quantity if status is "Delivered" (status=4)
-                        if updated_order.status == 4:
+                        if updated_order.status == 4 or updated_order.status == 8:
                             for order_detail in OrderDetails.objects.filter(order=updated_order):
                                 product = order_detail.product
                                 if product.stock >= order_detail.quantity:

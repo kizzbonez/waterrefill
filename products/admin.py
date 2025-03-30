@@ -20,6 +20,11 @@ class ProductAdminForm(forms.ModelForm):
         if Product.objects.filter(name=name).exclude(id=self.instance.id).exists():
             raise forms.ValidationError(f"A product with the name '{name}' already exists.")
         return name
+    def clean_price(self):
+        price = self.cleaned_data.get("price")
+        if price <= 0:
+            raise forms.ValidationError(f"Price cannot be less than 0")
+        return price
 @admin.register(Product)
 
 class ProductAdmin(admin.ModelAdmin):
@@ -51,6 +56,8 @@ class ProductAdmin(admin.ModelAdmin):
     @admin.display(ordering='price', description="price")  # Enables sorting and renames column
     def get_formatted_amount(self, obj):
         return common.formatted_amount(obj.price)  # Use the function from common.py
+
+
 
     def export_to_excel(self, request, queryset):
         """Exports selected products to an Excel file."""
