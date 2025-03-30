@@ -199,10 +199,10 @@ JAZZMIN_SETTINGS = {
         "settings.StoreSettings",
         "auth.Group",    # Hides the separate "Products" section
         # "django_celery_beat.periodictask",
-        # "django_celery_beat.clockedschedule",
-        # "django_celery_beat.crontabschedule",
-        # "django_celery_beat.intervalschedule",
-        # "django_celery_beat.solarschedule",
+        "django_celery_beat.clockedschedule",
+        "django_celery_beat.crontabschedule",
+        "django_celery_beat.intervalschedule",
+        "django_celery_beat.solarschedule",
         "reports.Reports",
     ],
 
