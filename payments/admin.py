@@ -110,7 +110,6 @@ class PaymentAdmin(admin.ModelAdmin):
 
         # Get the changelist instance
         response = super().changelist_view(request, extra_context=extra_context)
-        print( response.context_data)
         try:
             cl = response.context_data['cl']  # ChangeList instance
             queryset = cl.queryset

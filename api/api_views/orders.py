@@ -7,7 +7,6 @@ from api.serializers.orders import OrderSerializer, OrderDetailsSerializer
 from products.models import Product  # Ensure Product model exists
 from django.contrib.auth import get_user_model
 from django.db import transaction
-from django.db.models import Q
 User = get_user_model()  # Get the correct user model
 class OrderListCreateView(APIView):
     
@@ -15,12 +14,7 @@ class OrderListCreateView(APIView):
 
     def get(self, request):
         user = request.user
-    
-        orders = Order.objects.filter(
-            (Q(customer=user) | Q(assigned_to=user)) & ~Q(status=8)
-        )
-       
-
+        orders = Order.objects.filter(customer=user) | Order.objects.filter(assigned_to=user)
         serializer = OrderSerializer(orders, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 

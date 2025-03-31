@@ -12,10 +12,10 @@ def inaccessible_apps_context(request):
     for app in installed_apps:
         models = app.get_models()
         has_access = False
-
         for model in models:
             # Check if the user has view permission for any model in the app
             perm_codename = f"{model._meta.app_label}.view_{model._meta.model_name}"
+            print(perm_codename)
             if user.has_perm(perm_codename):
                 has_access = True
                 break  # If at least one model is accessible, allow the app
